@@ -97,22 +97,49 @@ The *Vínculos* tab lists every offer the hub copied (`GET /offers`, all pages),
 those that need a person first, with counts by key and filters "Por resolver",
 "Vinculadas", "Todas".
 
-## Report screen (next)
+## Report screen (built in 0.3.0)
 
-The page under *WooCommerce → ZincoGroup Hub* has tabs; the report becomes the first
-one, before *Vínculos* and *Definições*.
+The first tab of *WooCommerce → ZincoGroup Hub*, before *Vínculos* and *Definições*.
 
-- One call to `GET /v1/plugin/kuantokusta/report?limit=200` (Zincomed has about 185
-  active offers), following `nextCursor` if there are more, cached for a few minutes
-  and dropped when a collection ends.
-- `WP_List_Table`: product (linked to its edit screen), Zincomed's price, lowest price
-  and store, difference in euros and percent, position, last comparison.
-- Highlights: easy adjust (`easyAdjust`) and check the link (`checkLink`).
-- Filters: outcome, easy adjust, check the link, without link, and the offer state.
-- Header: when the last collection ended and how, in Portugal time; a warning when
-  rows are `stale`.
-- Prices arrive as integer cents and are only divided by 100 to display (`15,99 €`).
-- With or without shipping by default: not decided yet; the hub returns both.
+- **Data:** every page of `GET /v1/plugin/kuantokusta/report` (200 rows a page; about
+  185 for Zincomed), kept for 5 minutes per offer state. "Atualizar" reads the hub
+  again. The report's offers are linked on the way, as in *Vínculos*.
+- **Header:** when the last collection ended (Portugal time) and how; a warning with
+  the number of `stale` rows; the hub's summary by outcome, easy adjust and link
+  check, each a link that filters the table; the thresholds in words.
+- **Table:**
+  - product (the linked WooCommerce product, or the offer's name with "sem vínculo");
+  - REF and a link to the KuantoKusta page;
+  - the store's price, the lowest price and its store;
+  - the difference in euros and percent, the position;
+  - the outcome, with badges for easy adjust (green row), check the link (orange row)
+    and "coleta anterior" (stale).
+- **Filters (query string, so a view can be bookmarked):**
+  - outcome;
+  - offer state (active, or including out of stock and delisted);
+  - only easy adjust, only check the link, only without a link;
+  - "Comparar com portes".
+- **Sorting:** by product, the store's price, the difference or the percentage. Rows
+  without a value always go last.
+- **With shipping:** the table shows the totals the hub stored (`storeTotalCents`,
+  `lowestTotalCents`, `totalDifferenceCents`) and hides the percentage and position,
+  which the hub computes only without shipping. The plugin computes nothing. Which
+  comparison is the default is still open; without shipping until decided.
+- **Formatting:** cents are formatted with integer arithmetic (`15,99 €`, thousands
+  with a thin space); percentages with one decimal and a sign (`+3,2 %`); times in
+  `Europe/Lisbon`.
+
+## CSV export (built in 0.3.0)
+
+"Transferir CSV" exports the rows as filtered and sorted on screen (POST to
+`admin-post.php`, capability and nonce), for Excel in Portugal:
+
+- `;` separator, decimal comma, UTF-8 with BOM, CRLF lines;
+- amounts without the thousands separator, so a spreadsheet reads them as numbers;
+- both comparisons, with and without shipping, in the same file;
+- a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a
+  leading apostrophe, so a product name cannot run as a formula. Numbers formatted by
+  the plugin are exempt, so a negative difference stays a number.
 
 ## Regenerate (next)
 
@@ -120,12 +147,6 @@ one, before *Vínculos* and *Definições*.
 `GET /runs/{id}` every 10 seconds from the page, through an admin-ajax action that
 checks the capability and a nonce. 429 `kk_run_too_soon` shows when it can be asked
 again (from `Retry-After`); 409 `kk_key_missing` points to the settings.
-
-## CSV export (next)
-
-For Excel in Portugal: `;` separator, decimal comma, UTF-8 with BOM. A cell that starts
-with `=`, `+`, `-` or `@` gets a leading apostrophe, so a product name cannot run as a
-formula.
 
 ## Security
 
