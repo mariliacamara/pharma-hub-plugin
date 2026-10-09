@@ -171,12 +171,61 @@ class Pharma_Hub_Client {
     }
 
     /**
+     * The shape of a collection id: a UUID.
+     */
+    const RUN_ID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
+
+    /**
+     * Asks the hub for a new collection of competitor prices.
+     *
+     * The hub answers at once; the collection itself takes minutes. If one
+     * is already waiting or running, the hub returns it instead
+     * (created = false), so asking twice never starts two.
+     *
+     * @param string $requested_by Who pressed the button, for the hub's history.
+     * @return array{run: array, created: bool}
+     * @throws Pharma_Hub_Error For example kk_run_too_soon (429, with Retry-After) or kk_key_missing (409).
+     */
+    public function start_run( $requested_by ) {
+        // One line of at most 120 characters, as the hub accepts.
+        $requested_by = trim( preg_replace( '/[\x00-\x1F\x7F]+/', ' ', (string) $requested_by ) );
+        $requested_by = function_exists( 'mb_substr' ) ? mb_substr( $requested_by, 0, 120 ) : substr( $requested_by, 0, 120 );
+        $body         = '' === $requested_by ? array() : array( 'requestedBy' => $requested_by );
+
+        return $this->request( 'POST', '/v1/plugin/kuantokusta/runs', array(), (object) $body );
+    }
+
+    /**
+     * One collection: how far it is and how it ended.
+     *
+     * @param string $run_id Collection id.
+     * @return array{run: array, summary: array}
+     * @throws Pharma_Hub_Error When the id is not a collection id, or the hub refuses.
+     */
+    public function get_run( $run_id ) {
+        if ( ! is_string( $run_id ) || 1 !== preg_match( self::RUN_ID_PATTERN, $run_id ) ) {
+            throw new Pharma_Hub_Error( 'plugin_bad_run_id', 'Not a collection id' );
+        }
+        return $this->request( 'GET', '/v1/plugin/kuantokusta/runs/' . $run_id );
+    }
+
+    /**
+     * The store's most recent collection, finished or not.
+     *
+     * @return array{run: array|null, summary: array|null}
+     * @throws Pharma_Hub_Error When the hub refuses or cannot be reached.
+     */
+    public function get_latest_run() {
+        return $this->request( 'GET', '/v1/plugin/kuantokusta/runs/latest' );
+    }
+
+    /**
      * Calls the hub.
      *
-     * @param string     $method HTTP method.
-     * @param string     $path   Path starting with /v1/.
-     * @param array      $query  Query parameters.
-     * @param array|null $body   JSON body, or null for none.
+     * @param string            $method HTTP method.
+     * @param string            $path   Path starting with /v1/.
+     * @param array             $query  Query parameters.
+     * @param array|object|null $body   JSON body, or null for none. An empty object is sent as {}.
      * @return array Decoded JSON answer.
      * @throws Pharma_Hub_Error When the call fails, with the hub's code when it gave one.
      */

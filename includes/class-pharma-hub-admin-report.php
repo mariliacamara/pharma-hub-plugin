@@ -68,6 +68,7 @@ class Pharma_Hub_Admin_Report {
 
         self::render_styles();
         self::render_header( $report, $filters );
+        Pharma_Hub_Admin_Runs::render_panel( $client );
         self::render_filters( $filters, count( $rows ) );
         self::render_table( $rows, $links, $products, $filters );
     }
