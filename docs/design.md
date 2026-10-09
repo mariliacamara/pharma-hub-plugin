@@ -21,21 +21,49 @@ its database; a collection never runs inside a request.
 ## Names
 
 - Shown to the client: **ZincoGroup Hub**. That is the plugin header, fixed in the file.
-  Menus and titles use the store's `brandName` from `GET /v1/plugin/store`, cached for
+  The menu uses the store's `brandName` from `GET /v1/plugin/store`, cached for
   an hour, with "ZincoGroup Hub" as the fallback. When a second store (Farmácia Nova
   Porto) uses the plugin, its plugin list will still say "ZincoGroup Hub"; its screens
   will say its own name.
 - Technical: `pharma-hub-plugin` (repository, folder, text domain), `Pharma_Hub_`
   (classes), `pharma_hub_` (options), `PHARMA_HUB_` (constants). Never shown to a client.
 
+## Menu (changed in 0.7.0)
+
+The plugin has its own top-level menu, named after the store's brand, with one entry
+per integration and one for what they share:
+
+| Entry | Page slug | What it holds |
+|---|---|---|
+| KuantoKusta | `pharma-hub` | Tabs *Relatório*, *Vínculos*, *Definições* (easy adjust, KuantoKusta key, EAN field) |
+| Ligação ao hub | `pharma-hub-connection` | Hub address and token |
+
+- Why not under WooCommerce any more: the hub will serve more than one integration
+  (4DPharma is next). Each one becomes an entry of this menu with its own settings,
+  instead of more tabs on one WooCommerce page.
+- Why the connection has its own entry: the address and the token belong to the hub,
+  not to KuantoKusta. Under *KuantoKusta → Definições* a second integration would have
+  to send people to another integration's screen to connect.
+- The KuantoKusta page keeps the slug `pharma-hub`, which is also the menu's slug, so
+  addresses saved before 0.7.0 still open it.
+- A page is recognised by its slug in the request, never by WordPress's hook suffix:
+  the suffix of a page under a menu is made from the menu's title, which here is the
+  brand name and can change.
+- Shared CSS (status strip, cards, pills, tables, panels) is printed by
+  `Pharma_Hub_Admin::render_styles()` on both pages.
+
 ## Settings (built in 0.1.0)
+
+Each setting has its own form, button and action, so saving one never rewrites
+another (0.7.0). When the address and the token both come from `wp-config.php`,
+*Ligação ao hub* shows them as information instead of a form that cannot be saved.
 
 | Setting | Where | Notes |
 |---|---|---|
-| Hub address | `PHARMA_HUB_URL` in `wp-config.php`, or the settings screen | https only, no credentials, query or fragment. http and private addresses only when `wp_get_environment_type()` is `local` or `development` |
-| Token | `PHARMA_HUB_TOKEN` in `wp-config.php` (recommended), or the settings screen | Stored encrypted (libsodium secretbox) with a key derived from `AUTH_KEY` and `AUTH_SALT`. Write-only field; only the last four characters are shown. Not autoloaded |
-| KuantoKusta key | Settings screen | Write-only. Sent once to `PUT /v1/plugin/kuantokusta/credential`; the hub checks it with KuantoKusta and stores it. The plugin keeps no copy |
-| EAN field | Settings screen | The meta key of an EAN plugin, looked up after WooCommerce's own GTIN field. Defaults to `_alg_ean` (see "Linking") |
+| Hub address | `PHARMA_HUB_URL` in `wp-config.php`, or *Ligação ao hub* | https only, no credentials, query or fragment. http and private addresses only when `wp_get_environment_type()` is `local` or `development` |
+| Token | `PHARMA_HUB_TOKEN` in `wp-config.php` (recommended), or *Ligação ao hub* | Stored encrypted (libsodium secretbox) with a key derived from `AUTH_KEY` and `AUTH_SALT`. Write-only field; only the last four characters are shown. Not autoloaded |
+| KuantoKusta key | *KuantoKusta → Definições* | Write-only. Sent once to `PUT /v1/plugin/kuantokusta/credential`; the hub checks it with KuantoKusta and stores it. The plugin keeps no copy |
+| EAN field | *KuantoKusta → Definições* | The meta key of an EAN plugin, looked up after WooCommerce's own GTIN field. Defaults to `_alg_ean` (see "Linking") |
 
 Why the database is allowed for the token at all: some stores cannot edit
 `wp-config.php`. Encrypting with the site's secret keys means a copy of the database
@@ -94,12 +122,26 @@ chooses. Pure rules in `Pharma_Hub_Linker`, tested without WordPress.
 - Ambiguous and unmatched offers are not stored; they are looked up on every visit.
 
 The *Vínculos* tab lists every offer the hub copied (`GET /offers`, all pages),
-those that need a person first, with counts by key and filters "Por resolver",
-"Vinculadas", "Todas".
+those that need a person first. Since 0.7.0:
+
+- A strip at the top answers the only question most visits have: is there anything
+  to resolve.
+- The counts are cards that filter the list: "Por resolver", "Todas as ofertas" and
+  one per way of linking (SKU, EAN, store address, chosen by hand). The old filter
+  `links=linked` has no card and still works.
+- Search (`s`) by name, REF or EAN, of the offer or of its product. Every word typed
+  must be found, in any order; case and accents are ignored. The rule is
+  `Pharma_Hub_Linker::matches_search()`, tested without WordPress; accents are
+  folded with WordPress's `remove_accents()` before it.
+- Actions return to the same list and the same search.
+- "Marcar como errado" is a quiet link: with every offer linked, a button on each
+  row made the rarest action the loudest thing on the screen.
+- The screen does not judge whether a link looks wrong (for instance by comparing
+  names): it shows what was linked and how. A person decides.
 
 ## Report screen (built in 0.3.0)
 
-The first tab of *WooCommerce → ZincoGroup Hub*, before *Vínculos* and *Definições*.
+The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Definições*.
 
 - **Data:** every page of `GET /v1/plugin/kuantokusta/report` (200 rows a page; about
   185 for Zincomed), kept for 5 minutes per offer state. "Atualizar" reads the hub
