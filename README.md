@@ -17,6 +17,7 @@ technical name of the service and of this repository.
 | Linking offers to WooCommerce products | Built (0.2.0) |
 | Report screen, filters, CSV export | Built (0.3.0) |
 | "Regenerar" button | Built (0.4.0) |
+| Easy-adjust threshold in *Definições* | Built (0.5.0) |
 
 ## Requirements
 
