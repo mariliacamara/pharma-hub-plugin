@@ -106,7 +106,9 @@ The first tab of *WooCommerce → ZincoGroup Hub*, before *Vínculos* and *Defin
   again. The report's offers are linked on the way, as in *Vínculos*.
 - **Header:** when the last collection ended (Portugal time) and how; a warning with
   the number of `stale` rows; the hub's summary by outcome, easy adjust and
-  "Diferença suspeita", each a link that filters the table; the thresholds in words.
+  "Diferença suspeita", each a link that shows only those rows (it replaces the
+  outcome and flag filters rather than adding to them; "Todas" clears them; the
+  active one is highlighted), with the thresholds in words.
 - **"Diferença suspeita"** (renamed from "Conferir vínculo" in 0.4.0): the difference
   is 50% or more either way. It is shown under that name because the cause is usually
   the KuantoKusta page (another product, variant or pack size), not the link to the

@@ -6,6 +6,17 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-09
+
+### Fixed
+
+- The summary links above the report ("Mais barata", "Ajuste fácil"…)
+  added to the filter already chosen, so a second click could leave the
+  table empty (no offer is both the cheapest and an easy adjust). Each
+  link now shows only its own rows, the active one is highlighted, and
+  "Todas" shows every offer again. The offer state, the shipping switch
+  and the order are kept.
+
 ## [0.4.0] - 2026-10-09
 
 ### Added
