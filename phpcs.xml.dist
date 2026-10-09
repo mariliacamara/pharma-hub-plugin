@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<ruleset name="ZincoGroup Hub plugin">
+    <description>WordPress-Extra and WordPress-Docs focused on security, correctness and documentation, without formatting rules.</description>
+
+    <file>.</file>
+    <exclude-pattern>/vendor/*</exclude-pattern>
+    <!-- Tests run outside WordPress, with stubs; they are checked by php -l and PHPUnit. -->
+    <exclude-pattern>/tests/*</exclude-pattern>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <config name="minimum_wp_version" value="6.1"/>
+    <config name="testVersion" value="7.4-"/>
+
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!-- Every file and function needs a docblock with @param/@return. -->
+    <rule ref="WordPress-Docs"/>
+
+    <rule ref="WordPress-Extra">
+        <!-- The code base uses 4-space indentation and free alignment; reformatting everything would only add noise. -->
+        <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+        <exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature"/>
+        <exclude name="Squiz.Functions.MultiLineFunctionDeclaration"/>
+        <exclude name="Squiz.PHP.EmbeddedPhp"/>
+        <exclude name="PSR2.Files.EndFileNewline"/>
+        <exclude name="Generic.ControlStructures.InlineControlStructure"/>
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="Universal.Operators.DisallowShortTernary"/>
+        <exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement"/>
+        <exclude name="WordPress.PHP.YodaConditions"/>
+        <!-- $_GET reads used only to filter, sort or paginate do not change state.
+             $_POST handling is still covered by NonceVerification.Missing. -->
+        <exclude name="WordPress.Security.NonceVerification.Recommended"/>
+        <!-- Hook callbacks must accept the full hook signature. -->
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter"/>
+        <!-- Properties of third-party objects (DOMNode, Discount Rules). -->
+        <exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase"/>
+    </rule>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="pharma-hub-plugin"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>
