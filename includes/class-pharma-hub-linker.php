@@ -108,6 +108,35 @@ class Pharma_Hub_Linker {
     }
 
     /**
+     * Whether every word of a search is somewhere in the texts of an offer.
+     *
+     * Words can be in different texts and in any order, so "allevyn 6129684"
+     * finds the offer with that name and that REF. An empty search finds
+     * everything. Upper and lower case are the same; accents are the
+     * caller's business.
+     *
+     * @param mixed $term  What the person typed.
+     * @param array $texts Texts of the offer and of its product.
+     * @return bool
+     */
+    public static function matches_search( $term, $texts ) {
+        $lower = function ( $text ) {
+            return function_exists( 'mb_strtolower' ) ? mb_strtolower( $text, 'UTF-8' ) : strtolower( $text );
+        };
+        $words = is_scalar( $term ) ? preg_split( '/\s+/', $lower( (string) $term ), -1, PREG_SPLIT_NO_EMPTY ) : array();
+        if ( ! $words ) {
+            return true;
+        }
+        $haystack = $lower( implode( "\n", array_map( 'strval', array_filter( (array) $texts, 'is_scalar' ) ) ) );
+        foreach ( $words as $word ) {
+            if ( false === strpos( $haystack, $word ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * The SKU as stored by WooCommerce, or null when there is none.
      *
      * @param mixed $sku Value from the hub.
