@@ -176,4 +176,35 @@ final class ClientTest extends TestCase {
         $this->assertSame( 'O KuantoKusta não aceitou esta chave. Nada foi alterado. Referência: req-9', Pharma_Hub_Admin::error_message( $known ) );
         $this->assertSame( 'O hub respondeu de forma inesperada (something_new).', Pharma_Hub_Admin::error_message( $unknown ) );
     }
+
+    public function test_reads_and_changes_the_easy_adjust_threshold() {
+        $client = $this->client_answering( self::answer( 200, array( 'cents' => 25 ) ) );
+
+        $this->assertSame( array( 'cents' => 25 ), $client->get_easy_adjust() );
+        $this->assertSame( array( 'cents' => 25 ), $client->put_easy_adjust( 25 ) );
+
+        list( $get_url, $get_args ) = $this->sent[0];
+        $this->assertSame( 'https://hub.example.com/v1/plugin/kuantokusta/settings/easy-adjust', $get_url );
+        $this->assertSame( 'GET', $get_args['method'] );
+
+        list( $put_url, $put_args ) = $this->sent[1];
+        $this->assertSame( $get_url, $put_url );
+        $this->assertSame( 'PUT', $put_args['method'] );
+        $this->assertSame( '{"cents":25}', $put_args['body'] );
+        $this->assertSame( 'application/json', $put_args['headers']['Content-Type'] );
+    }
+
+    public function test_does_not_send_a_threshold_that_is_not_whole_cents_in_range() {
+        $client = $this->client_answering( self::answer( 200, array( 'cents' => 10 ) ) );
+
+        foreach ( array( -1, 100001, '10', 1.5, null ) as $value ) {
+            try {
+                $client->put_easy_adjust( $value );
+                $this->fail( 'Accepted ' . var_export( $value, true ) );
+            } catch ( Pharma_Hub_Error $error ) {
+                $this->assertSame( 'plugin_bad_cents', $error->get_error_code() );
+            }
+        }
+        $this->assertSame( array(), $this->sent );
+    }
 }

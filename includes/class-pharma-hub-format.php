@@ -92,6 +92,29 @@ class Pharma_Hub_Format {
     }
 
     /**
+     * A whole number of cents typed by a person, or null when it is not one.
+     *
+     * Only digits are accepted: "10", not "0,10" or "10 cêntimos". A value
+     * that could be read in two ways is refused instead of guessed.
+     *
+     * @param mixed $value What was typed.
+     * @param int   $max   Largest value accepted.
+     * @return int|null
+     */
+    public static function cents_from_input( $value, $max ) {
+        if ( ! is_string( $value ) && ! is_int( $value ) ) {
+            return null;
+        }
+        $text = trim( (string) $value );
+        if ( 1 !== preg_match( '/^\d{1,9}$/', $text ) ) {
+            return null;
+        }
+        $cents = (int) $text;
+
+        return $cents <= $max ? $cents : null;
+    }
+
+    /**
      * A value made safe for a CSV cell opened in a spreadsheet.
      *
      * A text that starts with =, +, -, @, a tab or a carriage return would

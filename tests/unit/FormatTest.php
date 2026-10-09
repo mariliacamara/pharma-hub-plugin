@@ -18,6 +18,19 @@ final class FormatTest extends TestCase {
         $this->assertSame( '', Pharma_Hub_Format::money( null ) );
     }
 
+    public function test_reads_a_whole_number_of_cents_and_nothing_else() {
+        $this->assertSame( 10, Pharma_Hub_Format::cents_from_input( '10', 100000 ) );
+        $this->assertSame( 0, Pharma_Hub_Format::cents_from_input( '0', 100000 ) );
+        $this->assertSame( 25, Pharma_Hub_Format::cents_from_input( ' 25 ', 100000 ) );
+        $this->assertSame( 100000, Pharma_Hub_Format::cents_from_input( '100000', 100000 ) );
+        $this->assertSame( 7, Pharma_Hub_Format::cents_from_input( 7, 100000 ) );
+
+        // Anything that could be read in two ways is refused, not guessed.
+        foreach ( array( '', '0,10', '0.10', '10 cêntimos', '-5', '+5', '1e3', '0x1A', '100001', '9999999999', null, 1.5, array( '10' ) ) as $value ) {
+            $this->assertNull( Pharma_Hub_Format::cents_from_input( $value, 100000 ), var_export( $value, true ) );
+        }
+    }
+
     public function test_formats_percentages_with_one_decimal_and_sign() {
         $this->assertSame( '+10,3' . self::NBSP . '%', Pharma_Hub_Format::percent( 10.2541 ) );
         $this->assertSame( '-61,5' . self::NBSP . '%', Pharma_Hub_Format::percent( -61.538 ) );

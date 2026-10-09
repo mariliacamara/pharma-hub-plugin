@@ -21,6 +21,7 @@ class Pharma_Hub_Admin {
 
     const ACTION_SAVE_CONNECTION = 'pharma_hub_save_connection';
     const ACTION_SEND_KK_KEY     = 'pharma_hub_send_kk_key';
+    const ACTION_SAVE_EASY       = 'pharma_hub_save_easy_adjust';
 
     /**
      * Hooks the admin screens.
@@ -36,6 +37,7 @@ class Pharma_Hub_Admin {
         Pharma_Hub_Admin_Runs::register();
         add_action( 'admin_post_' . self::ACTION_SAVE_CONNECTION, array( __CLASS__, 'handle_save_connection' ) );
         add_action( 'admin_post_' . self::ACTION_SEND_KK_KEY, array( __CLASS__, 'handle_send_kk_key' ) );
+        add_action( 'admin_post_' . self::ACTION_SAVE_EASY, array( __CLASS__, 'handle_save_easy_adjust' ) );
     }
 
     /**
@@ -232,6 +234,44 @@ class Pharma_Hub_Admin {
     }
 
     /**
+     * Changes the store's "easy adjust" threshold in the hub.
+     *
+     * @return void
+     */
+    public static function handle_save_easy_adjust() {
+        self::check_capability();
+        check_admin_referer( self::ACTION_SAVE_EASY );
+
+        $typed = isset( $_POST['pharma_hub_easy_adjust_cents'] ) ? sanitize_text_field( wp_unslash( $_POST['pharma_hub_easy_adjust_cents'] ) ) : '';
+        $cents = Pharma_Hub_Format::cents_from_input( $typed, Pharma_Hub_Client::MAX_EASY_ADJUST_CENTS );
+        if ( null === $cents ) {
+            self::redirect_back( array( array( 'error', __( 'Escreva o limite em cêntimos, só com algarismos (por exemplo 10). Nada foi alterado.', 'pharma-hub-plugin' ) ) ) );
+        }
+
+        $client = Pharma_Hub_Settings::client();
+        if ( null === $client ) {
+            self::redirect_back( array( array( 'error', __( 'Configure primeiro o endereço do hub e o token.', 'pharma-hub-plugin' ) ) ) );
+        }
+
+        try {
+            $client->put_easy_adjust( $cents );
+            // The cached report still marks offers by the old threshold.
+            Pharma_Hub_Report::forget();
+            $notice = array(
+                'success',
+                sprintf(
+                    /* translators: %s: amount of money */
+                    __( 'Limite do ajuste fácil alterado para %s. O relatório já usa o novo valor.', 'pharma-hub-plugin' ),
+                    Pharma_Hub_Format::money( $cents )
+                ),
+            );
+        } catch ( Pharma_Hub_Error $error ) {
+            $notice = array( 'error', self::error_message( $error ) );
+        }
+        self::redirect_back( array( $notice ) );
+    }
+
+    /**
      * Renders the settings tab.
      *
      * @return void
@@ -240,12 +280,15 @@ class Pharma_Hub_Admin {
         $client = Pharma_Hub_Settings::client();
         $store  = null;
         $kk     = null;
+        $easy   = null;
         $failed = null;
         if ( $client ) {
             try {
                 $store = $client->get_store();
                 Pharma_Hub_Settings::remember_store( $store );
-                $kk = $client->get_credential();
+                $kk     = $client->get_credential();
+                $answer = $client->get_easy_adjust();
+                $easy   = isset( $answer['cents'] ) && is_int( $answer['cents'] ) ? $answer['cents'] : null;
             } catch ( Pharma_Hub_Error $error ) {
                 $failed = $error;
             }
@@ -365,6 +408,33 @@ class Pharma_Hub_Admin {
                 </table>
                 <?php submit_button( __( 'Enviar para o hub', 'pharma-hub-plugin' ), 'secondary', 'submit', true, null === $client ? array( 'disabled' => 'disabled' ) : null ); ?>
             </form>
+
+            <h2><?php esc_html_e( 'Ajuste fácil', 'pharma-hub-plugin' ); ?></h2>
+            <p><?php esc_html_e( 'O relatório destaca como "ajuste fácil" as ofertas em que a loja está mais cara por pouco. Aqui define até quanto conta como pouco. O valor é guardado no hub e o relatório passa a usá-lo de imediato.', 'pharma-hub-plugin' ); ?></p>
+            <form method="post" action="<?php echo esc_url( $admin_post ); ?>">
+                <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_EASY ); ?>">
+                <?php wp_nonce_field( self::ACTION_SAVE_EASY ); ?>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="pharma_hub_easy_adjust_cents"><?php esc_html_e( 'Limite, em cêntimos', 'pharma-hub-plugin' ); ?></label></th>
+                        <td>
+                            <input type="number" class="small-text" id="pharma_hub_easy_adjust_cents" name="pharma_hub_easy_adjust_cents" min="0" max="<?php echo esc_attr( Pharma_Hub_Client::MAX_EASY_ADJUST_CENTS ); ?>" step="1" inputmode="numeric" value="<?php echo esc_attr( null === $easy ? '' : $easy ); ?>" <?php disabled( null === $easy ); ?>>
+                            <?php if ( null !== $easy ) : ?>
+                                <p class="description">
+                                    <?php
+                                    printf(
+                                        /* translators: %s: amount of money */
+                                        esc_html__( 'Agora: a loja está mais cara por até %s. Com 0, nenhuma oferta é marcada como ajuste fácil.', 'pharma-hub-plugin' ),
+                                        esc_html( Pharma_Hub_Format::money( $easy ) )
+                                    );
+                                    ?>
+                                </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button( __( 'Guardar limite', 'pharma-hub-plugin' ), 'secondary', 'submit', true, null === $easy ? array( 'disabled' => 'disabled' ) : null ); ?>
+            </form>
         <?php
     }
 
@@ -394,6 +464,14 @@ class Pharma_Hub_Admin {
                 break;
             case 'kk_key_missing':
                 $message = __( 'A loja ainda não tem a chave da API do KuantoKusta no hub. Configure-a em Definições.', 'pharma-hub-plugin' );
+                break;
+            case 'kk_settings_missing':
+                // Answered only by a hub older than the change that lets the
+                // threshold be set before the first collection.
+                $message = __( 'O hub só aceita mudar este valor depois da primeira coleta de preços. Peça uma coleta no separador Relatório e tente de novo.', 'pharma-hub-plugin' );
+                break;
+            case 'plugin_bad_cents':
+                $message = __( 'O limite tem de ser um número inteiro de cêntimos. Nada foi alterado.', 'pharma-hub-plugin' );
                 break;
             case 'kk_run_too_soon':
                 $message = null === $error->get_retry_after()
