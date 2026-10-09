@@ -12,12 +12,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
- * Menu, settings screen and the actions it posts to.
+ * Menu, the page with its tabs, the settings tab and the actions it posts to.
  */
 class Pharma_Hub_Admin {
 
-    const CAPABILITY    = 'manage_woocommerce';
-    const SETTINGS_PAGE = 'pharma-hub-settings';
+    const CAPABILITY = 'manage_woocommerce';
+    const PAGE       = 'pharma-hub';
 
     const ACTION_SAVE_CONNECTION = 'pharma_hub_save_connection';
     const ACTION_SEND_KK_KEY     = 'pharma_hub_send_kk_key';
@@ -28,13 +28,16 @@ class Pharma_Hub_Admin {
      * @return void
      */
     public static function register() {
+        add_action( 'admin_init', array( 'Pharma_Hub_Links', 'install' ) );
         add_action( 'admin_menu', array( __CLASS__, 'add_menu' ), 60 );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ), 20 );
+        Pharma_Hub_Admin_Links::register();
         add_action( 'admin_post_' . self::ACTION_SAVE_CONNECTION, array( __CLASS__, 'handle_save_connection' ) );
         add_action( 'admin_post_' . self::ACTION_SEND_KK_KEY, array( __CLASS__, 'handle_send_kk_key' ) );
     }
 
     /**
-     * Adds the settings screen under the WooCommerce menu.
+     * Adds the page under the WooCommerce menu.
      *
      * @return void
      */
@@ -45,9 +48,95 @@ class Pharma_Hub_Admin {
             $brand,
             $brand,
             self::CAPABILITY,
-            self::SETTINGS_PAGE,
-            array( __CLASS__, 'render_settings_page' )
+            self::PAGE,
+            array( __CLASS__, 'render_page' )
         );
+    }
+
+    /**
+     * Loads WooCommerce's product search on the plugin's page.
+     *
+     * @param string $hook_suffix Current admin page.
+     * @return void
+     */
+    public static function enqueue( $hook_suffix ) {
+        if ( 'woocommerce_page_' . self::PAGE !== $hook_suffix ) {
+            return;
+        }
+        wp_enqueue_script( 'wc-enhanced-select' );
+        wp_enqueue_style( 'woocommerce_admin_styles' );
+    }
+
+    /**
+     * The tabs of the page, by key.
+     *
+     * @return array
+     */
+    private static function tabs() {
+        return array(
+            'links'    => __( 'Vínculos', 'pharma-hub-plugin' ),
+            'settings' => __( 'Definições', 'pharma-hub-plugin' ),
+        );
+    }
+
+    /**
+     * The tab asked for in the URL, or the first one.
+     *
+     * @return string
+     */
+    private static function current_tab() {
+        $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+        return array_key_exists( $tab, self::tabs() ) ? $tab : 'links';
+    }
+
+    /**
+     * The address of a tab of the page.
+     *
+     * @param string $tab  Tab key.
+     * @param array  $args More query arguments.
+     * @return string
+     */
+    public static function tab_url( $tab, $args = array() ) {
+        return add_query_arg(
+            array_merge(
+                array(
+                    'page' => self::PAGE,
+                    'tab'  => $tab,
+                ),
+                $args
+            ),
+            admin_url( 'admin.php' )
+        );
+    }
+
+    /**
+     * Renders the page: title, tabs, notices and the current tab.
+     *
+     * @return void
+     */
+    public static function render_page() {
+        if ( ! current_user_can( self::CAPABILITY ) ) {
+            wp_die( esc_html__( 'Não tem permissão para ver esta página.', 'pharma-hub-plugin' ), 403 );
+        }
+        $current = self::current_tab();
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( Pharma_Hub_Settings::brand_name() ); ?></h1>
+            <nav class="nav-tab-wrapper">
+                <?php foreach ( self::tabs() as $tab => $label ) : ?>
+                    <a href="<?php echo esc_url( self::tab_url( $tab ) ); ?>" class="nav-tab<?php echo $tab === $current ? ' nav-tab-active' : ''; ?>"><?php echo esc_html( $label ); ?></a>
+                <?php endforeach; ?>
+            </nav>
+            <?php
+            self::render_notices();
+            if ( 'settings' === $current ) {
+                self::render_settings_tab();
+            } else {
+                Pharma_Hub_Admin_Links::render();
+            }
+            ?>
+        </div>
+        <?php
     }
 
     /**
@@ -135,15 +224,11 @@ class Pharma_Hub_Admin {
     }
 
     /**
-     * Renders the settings screen.
+     * Renders the settings tab.
      *
      * @return void
      */
-    public static function render_settings_page() {
-        if ( ! current_user_can( self::CAPABILITY ) ) {
-            wp_die( esc_html__( 'Não tem permissão para ver esta página.', 'pharma-hub-plugin' ), 403 );
-        }
-
+    private static function render_settings_tab() {
         $client = Pharma_Hub_Settings::client();
         $store  = null;
         $kk     = null;
@@ -164,11 +249,6 @@ class Pharma_Hub_Admin {
         $last_four         = Pharma_Hub_Settings::token_last_four();
         $admin_post        = admin_url( 'admin-post.php' );
         ?>
-        <div class="wrap">
-            <h1><?php echo esc_html( Pharma_Hub_Settings::brand_name() ); ?> &mdash; <?php esc_html_e( 'Definições', 'pharma-hub-plugin' ); ?></h1>
-
-            <?php self::render_notices(); ?>
-
             <h2><?php esc_html_e( 'Estado', 'pharma-hub-plugin' ); ?></h2>
             <?php if ( null === $client ) : ?>
                 <p><?php esc_html_e( 'Ainda não está ligado: falta o endereço do hub ou o token.', 'pharma-hub-plugin' ); ?></p>
@@ -257,7 +337,7 @@ class Pharma_Hub_Admin {
                         <th scope="row"><label for="pharma_hub_ean_meta_key"><?php esc_html_e( 'Campo do EAN', 'pharma-hub-plugin' ); ?></label></th>
                         <td>
                             <input type="text" class="regular-text code" id="pharma_hub_ean_meta_key" name="pharma_hub_ean_meta_key" value="<?php echo esc_attr( Pharma_Hub_Settings::ean_meta_key() ); ?>" spellcheck="false">
-                            <p class="description"><?php esc_html_e( 'Em branco: o campo "GTIN, UPC, EAN ou ISBN" do próprio WooCommerce. Preencha só se o EAN vier de outro plugin, com o nome do campo onde ele o guarda.', 'pharma-hub-plugin' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'O EAN é procurado primeiro no campo "GTIN, UPC, EAN ou ISBN" do próprio WooCommerce e depois neste campo, de outro plugin. _alg_ean é o do "EAN Barcode Generator for WooCommerce". Em branco: só o campo do WooCommerce.', 'pharma-hub-plugin' ); ?></p>
                         </td>
                     </tr>
                 </table>
@@ -277,7 +357,6 @@ class Pharma_Hub_Admin {
                 </table>
                 <?php submit_button( __( 'Enviar para o hub', 'pharma-hub-plugin' ), 'secondary', 'submit', true, null === $client ? array( 'disabled' => 'disabled' ) : null ); ?>
             </form>
-        </div>
         <?php
     }
 
@@ -338,24 +417,26 @@ class Pharma_Hub_Admin {
      *
      * @return void
      */
-    private static function check_capability() {
+    public static function check_capability() {
         if ( ! current_user_can( self::CAPABILITY ) ) {
             wp_die( esc_html__( 'Não tem permissão para fazer isto.', 'pharma-hub-plugin' ), 403 );
         }
     }
 
     /**
-     * Keeps notices for the current user and returns to the settings screen.
+     * Keeps notices for the current user and returns to a tab of the page.
      *
      * Notices travel in a short-lived transient rather than in the URL, so a
      * crafted link cannot show a fake message.
      *
-     * @param array $notices List of array( type, message ).
+     * @param array  $notices List of array( type, message ).
+     * @param string $tab     Tab to return to.
+     * @param array  $args    More query arguments, such as the tab's filter.
      * @return void
      */
-    private static function redirect_back( $notices ) {
+    public static function redirect_back( $notices, $tab = 'settings', $args = array() ) {
         set_transient( 'pharma_hub_notices_' . get_current_user_id(), $notices, MINUTE_IN_SECONDS );
-        wp_safe_redirect( admin_url( 'admin.php?page=' . self::SETTINGS_PAGE ) );
+        wp_safe_redirect( self::tab_url( $tab, $args ) );
         exit;
     }
 

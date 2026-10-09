@@ -6,6 +6,26 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-09
+
+### Added
+
+- Links between KuantoKusta offers and WooCommerce products, kept in the
+  plugin's own table: by SKU, then by EAN (WooCommerce's GTIN field, then
+  the EAN plugin's field), then by the product's address on the store. A
+  key that finds more than one product links nothing.
+- *Vínculos* tab: every offer with its product and how it was linked,
+  the offers to resolve first, "Marcar como errado", choosing the product
+  with WooCommerce's search, and "Procurar de novo".
+- The table is removed when the plugin is deleted.
+
+### Changed
+
+- The page has tabs; the settings moved to *Definições*.
+- The EAN field defaults to `_alg_ean` ("EAN Barcode Generator for
+  WooCommerce") and is looked up after WooCommerce's own GTIN field
+  instead of replacing it.
+
 ## [0.1.0] - 2026-10-09
 
 ### Added

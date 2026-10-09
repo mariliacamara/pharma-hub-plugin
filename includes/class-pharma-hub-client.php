@@ -103,6 +103,36 @@ class Pharma_Hub_Client {
     }
 
     /**
+     * Every offer the store has listed on KuantoKusta, as last copied by the hub.
+     *
+     * Follows the hub's pages of 200 until the last one.
+     *
+     * @return array[] Offers: id, offerRef, sku, ean, name, storeUrl, productUrl, priceCents, stock...
+     * @throws Pharma_Hub_Error When the hub refuses or cannot be reached.
+     */
+    public function get_all_offers() {
+        $offers = array();
+        $after  = null;
+        // 100 pages of 200 is far more than any store's catalogue on
+        // KuantoKusta; the bound only stops a hub that never ends.
+        for ( $page = 0; $page < 100; $page++ ) {
+            $query = array( 'limit' => 200 );
+            if ( null !== $after ) {
+                $query['after'] = $after;
+            }
+            $answer = $this->request( 'GET', '/v1/plugin/kuantokusta/offers', $query );
+            if ( isset( $answer['offers'] ) && is_array( $answer['offers'] ) ) {
+                $offers = array_merge( $offers, $answer['offers'] );
+            }
+            $after = isset( $answer['nextCursor'] ) && is_string( $answer['nextCursor'] ) ? $answer['nextCursor'] : null;
+            if ( null === $after ) {
+                return $offers;
+            }
+        }
+        throw new Pharma_Hub_Error( 'plugin_too_many_pages', 'The hub kept returning pages of offers' );
+    }
+
+    /**
      * Calls the hub.
      *
      * @param string     $method HTTP method.

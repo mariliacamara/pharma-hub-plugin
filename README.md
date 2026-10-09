@@ -14,7 +14,7 @@ technical name of the service and of this repository.
 |---|---|
 | Settings: hub address, token, KuantoKusta key, EAN field | Built (0.1.0) |
 | Client of the hub's API | Built (0.1.0) |
-| Linking offers to WooCommerce products | Designed (`docs/design.md`) |
+| Linking offers to WooCommerce products | Built (0.2.0) |
 | Report screen, filters, CSV export | Designed |
 | "Regenerate" button | Designed |
 
@@ -24,7 +24,7 @@ technical name of the service and of this repository.
 |---|---|
 | PHP | 7.4, with the `sodium` extension (bundled since PHP 7.2) |
 | WordPress | 6.1 |
-| WooCommerce | 8.0. Linking by EAN through WooCommerce's own GTIN field needs 9.2 |
+| WooCommerce | 8.0. Linking by EAN through WooCommerce's own GTIN field needs 9.2; Zincomed has it |
 | Hub | A plugin token (`phk_...`) for the store, issued with `npm run cli -- token:issue` |
 
 ## Installing
@@ -40,13 +40,16 @@ technical name of the service and of this repository.
    define( 'PHARMA_HUB_TOKEN', 'phk_...' );
    ```
 
-   Without them, type both in *WooCommerce → ZincoGroup Hub*. The token is then
+   Without them, type both in *WooCommerce → ZincoGroup Hub → Definições*. The token is then
    stored encrypted with a key derived from the site's secret keys in
    `wp-config.php`; if those keys are regenerated, the token has to be typed again.
 3. In the same screen, send the store's KuantoKusta API key to the hub. The hub
    checks it with KuantoKusta and stores it; the plugin keeps no copy.
-4. If the products' EAN does not come from WooCommerce's own "GTIN, UPC, EAN or ISBN"
-   field, type the meta key where the other plugin stores it.
+4. The EAN is looked up in WooCommerce's own "GTIN, UPC, EAN or ISBN" field and then
+   in `_alg_ean`, the field of "EAN Barcode Generator for WooCommerce". If the store
+   uses another EAN plugin, type its meta key in *Definições*.
+5. *Vínculos* links each KuantoKusta offer to a product by SKU, EAN or store address,
+   and lists the offers a person has to resolve.
 
 The screen needs the `manage_woocommerce` capability (administrators and shop
 managers).
@@ -76,7 +79,10 @@ includes/
   class-pharma-hub-secret-box.php        encryption of the token kept in the database
   class-pharma-hub-client.php            calls to the hub
   class-pharma-hub-error.php             a failed call, with the hub's error code
-  class-pharma-hub-admin.php             menu, settings screen, form actions
+  class-pharma-hub-linker.php            linking rules: SKU, then EAN, then store address
+  class-pharma-hub-links.php             the links table and the lookups on this site
+  class-pharma-hub-admin.php             menu, tabs, settings tab, form actions
+  class-pharma-hub-admin-links.php       the Vínculos tab and its actions
 uninstall.php                            removes the settings when the plugin is deleted
 tests/                                   PHPUnit, without WordPress
 docs/design.md                           how the plugin works and why

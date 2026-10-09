@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ZincoGroup Hub
  * Description: Relatório de preços do KuantoKusta: compara os preços da loja com os das outras lojas, a partir do ZincoGroup Hub.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 6.1
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -19,14 +19,19 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'PHARMA_HUB_PLUGIN_VERSION', '0.1.0' );
+define( 'PHARMA_HUB_PLUGIN_VERSION', '0.2.0' );
 define( 'PHARMA_HUB_PLUGIN_FILE', __FILE__ );
 
 require_once __DIR__ . '/includes/class-pharma-hub-secret-box.php';
 require_once __DIR__ . '/includes/class-pharma-hub-error.php';
 require_once __DIR__ . '/includes/class-pharma-hub-client.php';
 require_once __DIR__ . '/includes/class-pharma-hub-settings.php';
+require_once __DIR__ . '/includes/class-pharma-hub-linker.php';
+require_once __DIR__ . '/includes/class-pharma-hub-links.php';
 require_once __DIR__ . '/includes/class-pharma-hub-admin.php';
+require_once __DIR__ . '/includes/class-pharma-hub-admin-links.php';
+
+register_activation_hook( __FILE__, array( 'Pharma_Hub_Links', 'install' ) );
 
 /*
  * The plugin reads and writes no orders, so it is compatible with

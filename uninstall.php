@@ -1,6 +1,6 @@
 <?php
 /**
- * Removes the plugin's settings when it is deleted from WordPress.
+ * Removes the plugin's settings and links when it is deleted from WordPress.
  *
  * The token in wp-config.php, if any, is left for the site owner to remove.
  *
@@ -13,3 +13,7 @@ delete_option( 'pharma_hub_url' );
 delete_option( 'pharma_hub_token' );
 delete_option( 'pharma_hub_ean_meta_key' );
 delete_transient( 'pharma_hub_store' );
+
+global $wpdb;
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}pharma_hub_offer_links" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The plugin's own table.
+delete_option( 'pharma_hub_links_db_version' );
