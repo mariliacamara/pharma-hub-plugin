@@ -69,3 +69,4 @@ require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-linker.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-format.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-report.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-admin.php';
+require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-admin-runs.php';

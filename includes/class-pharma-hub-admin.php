@@ -33,6 +33,7 @@ class Pharma_Hub_Admin {
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ), 20 );
         Pharma_Hub_Admin_Links::register();
         Pharma_Hub_Admin_Report::register();
+        Pharma_Hub_Admin_Runs::register();
         add_action( 'admin_post_' . self::ACTION_SAVE_CONNECTION, array( __CLASS__, 'handle_save_connection' ) );
         add_action( 'admin_post_' . self::ACTION_SEND_KK_KEY, array( __CLASS__, 'handle_send_kk_key' ) );
     }
@@ -66,6 +67,9 @@ class Pharma_Hub_Admin {
         }
         wp_enqueue_script( 'wc-enhanced-select' );
         wp_enqueue_style( 'woocommerce_admin_styles' );
+        if ( 'report' === self::current_tab() ) {
+            Pharma_Hub_Admin_Runs::enqueue();
+        }
     }
 
     /**
@@ -387,6 +391,22 @@ class Pharma_Hub_Admin {
                 break;
             case 'too_many_requests':
                 $message = __( 'Demasiadas tentativas. Espere alguns minutos antes de tentar de novo.', 'pharma-hub-plugin' );
+                break;
+            case 'kk_key_missing':
+                $message = __( 'A loja ainda não tem a chave da API do KuantoKusta no hub. Configure-a em Definições.', 'pharma-hub-plugin' );
+                break;
+            case 'kk_run_too_soon':
+                $message = null === $error->get_retry_after()
+                    ? __( 'Uma coleta terminou há pouco e o relatório já está atualizado. Espere um pouco antes de pedir outra.', 'pharma-hub-plugin' )
+                    : sprintf(
+                        /* translators: %s: time, in Portugal time */
+                        __( 'Uma coleta terminou há pouco e o relatório já está atualizado. Pode pedir outra a partir das %s.', 'pharma-hub-plugin' ),
+                        Pharma_Hub_Format::time( gmdate( 'c', time() + $error->get_retry_after() ), 'H:i' )
+                    );
+                break;
+            case 'kk_run_not_found':
+            case 'plugin_bad_run_id':
+                $message = __( 'Essa coleta não existe. Recarregue a página.', 'pharma-hub-plugin' );
                 break;
             case 'invalid_request':
                 $message = __( 'O hub recusou o pedido por ter dados inválidos.', 'pharma-hub-plugin' );

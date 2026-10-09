@@ -6,6 +6,21 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-09
+
+### Added
+
+- *Regenerar* button on the report: asks the hub for a new collection of
+  competitor prices, shows its progress ("A recolher preços: 40 de 185
+  páginas") and reloads the report when it ends. A collection already
+  running when the page opens is followed at once. When a collection
+  ended a moment ago, it says from what time a new one can be asked.
+
+### Changed
+
+- "Conferir vínculo" is now "Diferença suspeita", with an explanation
+  that the cause is usually the KuantoKusta page, not the product link.
+
 ## [0.3.0] - 2026-10-09
 
 ### Added
