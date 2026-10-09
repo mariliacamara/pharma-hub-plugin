@@ -30,9 +30,11 @@ require_once __DIR__ . '/includes/class-pharma-hub-linker.php';
 require_once __DIR__ . '/includes/class-pharma-hub-links.php';
 require_once __DIR__ . '/includes/class-pharma-hub-format.php';
 require_once __DIR__ . '/includes/class-pharma-hub-report.php';
+require_once __DIR__ . '/includes/class-pharma-hub-history.php';
 require_once __DIR__ . '/includes/class-pharma-hub-admin.php';
 require_once __DIR__ . '/includes/class-pharma-hub-admin-links.php';
 require_once __DIR__ . '/includes/class-pharma-hub-admin-report.php';
+require_once __DIR__ . '/includes/class-pharma-hub-admin-history.php';
 require_once __DIR__ . '/includes/class-pharma-hub-admin-runs.php';
 
 register_activation_hook( __FILE__, array( 'Pharma_Hub_Links', 'install' ) );
