@@ -32,7 +32,7 @@ class Pharma_Hub_Links {
     /**
      * The hub's offer ids are positive integers of up to 18 digits.
      */
-    const OFFER_ID_PATTERN = '/^[1-9]\d{0,17}$/';
+    const OFFER_ID_PATTERN = Pharma_Hub_Client::OFFER_ID_PATTERN;
 
     /**
      * The table name, with the site's prefix.

@@ -207,4 +207,76 @@ final class ClientTest extends TestCase {
         }
         $this->assertSame( array(), $this->sent );
     }
+
+    public function test_reads_the_history_of_an_offer_page_by_page() {
+        $pages = array(
+            self::answer( 200, array( 'entries' => array( array( 'id' => '9' ), array( 'id' => '8' ) ), 'nextCursor' => '8' ) ),
+            self::answer( 200, array( 'entries' => array( array( 'id' => '7' ) ), 'nextCursor' => null ) ),
+        );
+        $urls   = array();
+        $client = new Pharma_Hub_Client(
+            'https://hub.example.com',
+            self::TOKEN,
+            function ( $url ) use ( &$pages, &$urls ) {
+                $urls[] = $url;
+                return array_shift( $pages );
+            }
+        );
+
+        $history = $client->get_offer_history( '42' );
+
+        $this->assertSame( array( '9', '8', '7' ), array_column( $history['entries'], 'id' ) );
+        $this->assertTrue( $history['complete'] );
+        $this->assertSame(
+            array(
+                'https://hub.example.com/v1/plugin/kuantokusta/offers/42/history?limit=200',
+                'https://hub.example.com/v1/plugin/kuantokusta/offers/42/history?limit=200&before=8',
+            ),
+            $urls
+        );
+    }
+
+    public function test_stops_reading_a_history_that_never_ends_and_says_so() {
+        $calls  = 0;
+        $client = new Pharma_Hub_Client(
+            'https://hub.example.com',
+            self::TOKEN,
+            function () use ( &$calls ) {
+                ++$calls;
+                return self::answer( 200, array( 'entries' => array( array( 'id' => (string) $calls ) ), 'nextCursor' => (string) $calls ) );
+            }
+        );
+
+        $history = $client->get_offer_history( '42' );
+
+        $this->assertSame( Pharma_Hub_Client::HISTORY_PAGES, $calls );
+        $this->assertFalse( $history['complete'] );
+        $this->assertCount( Pharma_Hub_Client::HISTORY_PAGES, $history['entries'] );
+    }
+
+    /**
+     * @dataProvider not_offer_ids
+     */
+    public function test_never_asks_for_the_history_of_something_that_is_not_an_offer_id( $offer_id ) {
+        $client = $this->client_answering( self::answer( 200, array( 'entries' => array() ) ) );
+        try {
+            $client->get_offer_history( $offer_id );
+            $this->fail( 'The call did not fail' );
+        } catch ( Pharma_Hub_Error $error ) {
+            $this->assertSame( 'plugin_bad_offer_id', $error->get_error_code() );
+        }
+        $this->assertSame( array(), $this->sent );
+    }
+
+    public function not_offer_ids() {
+        return array(
+            'a path'        => array( '1/../../admin' ),
+            'a query'       => array( '1?x=1' ),
+            'zero'          => array( '0' ),
+            'leading zero'  => array( '012' ),
+            'a number'      => array( 12 ),
+            'empty'         => array( '' ),
+            'too long'      => array( '1234567890123456789' ),
+        );
+    }
 }
