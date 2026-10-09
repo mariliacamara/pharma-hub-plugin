@@ -6,6 +6,24 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-09
+
+### Added
+
+- History of one offer, opened from the "histórico" link of each row of the
+  report:
+  - a step chart of the store's price against the lowest price on
+    KuantoKusta, with the stretch between them tinted by whether the store
+    was dearer or cheaper, and a mark where the store changed its price;
+  - periods of 30 days, 90 days or everything;
+  - four numbers about the period: smallest and largest difference, in how
+    many collections the store was the cheapest, and its range of positions;
+  - "O que mudou": the moments when the store's price, the lowest price or
+    the cheapest store changed, with the value before. Collections in a row
+    in which nothing changed are one line.
+  The chart is an SVG drawn by PHP: no script and no library. Going back
+  returns to the report with the same filters.
+
 ## [0.7.0] - 2026-10-09
 
 ### Changed

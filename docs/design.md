@@ -193,6 +193,39 @@ The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Defin
   with a thin space); percentages with one decimal and a sign (`+3,2 %`); times in
   `Europe/Lisbon`.
 
+## History of one offer (built in 0.8.0)
+
+Each row of the report has a "histórico" link. It opens, on the same tab
+(`history=<offer id>`), what the hub recorded for that offer: one comparison per
+collection that reached it (`GET /v1/plugin/kuantokusta/offers/{id}/history`).
+
+- **Nothing new in the hub, and nothing computed here.** Every value shown is a field
+  of a comparison. The plugin only picks the period, counts, and places points. The
+  rules are in `Pharma_Hub_History`, tested without WordPress.
+- **What the screen is for:** seeing whether the gap to the lowest price is recent or
+  old, and what the store's own price changes did to it.
+- **The chart is an SVG written by PHP.** No script and no chart library: nothing to
+  load, to update or to audit, and it works with scripts blocked. Coordinates are
+  written with a point whatever the site's language is.
+- **Steps, not slopes.** A price holds from its collection until the next one. Nothing
+  is drawn after the last collection, because what happened since is not known.
+- **Two lines that differ in more than colour:** solid for the store, dashed for the
+  lowest price, each with its value written at both ends. The stretch between them
+  is tinted: dearer or cheaper, named in the legend. The lowest-price line breaks
+  while no other store sold the product.
+- **"O que mudou" instead of one line per collection.** Collections in a row with the
+  same store price, lowest price and cheapest store are one line. The position among
+  the stores does not start a line: it moves on its own as other stores change
+  prices, and would bring back the noise. Each line shows its latest position.
+- **Periods:** 30 days (default), 90 days, everything. At most 1,000 comparisons are
+  read (5 pages of 200); when older ones are left out, the screen says so.
+- **The offer's name and today's numbers come from the report** (`state=all`, cached
+  like the report), so an offer that is out of stock still has a history to read.
+- **Limit worth knowing:** the history gains one entry per collection. While the daily
+  collection is off in the hub, it only grows when someone presses "Regenerar".
+- Not shown: each competitor's price over time. A comparison keeps only the lowest
+  price and who had it; the hub would need a new route over its raw readings.
+
 ## CSV export (built in 0.3.0)
 
 "Transferir CSV" exports the rows as filtered and sorted on screen (POST to
@@ -255,6 +288,7 @@ The *Regenerar* button sits under the report's header.
 ## Testing
 
 - PHPUnit without WordPress for the pure parts: encryption, validation, the client
-  with a fake transport, error messages.
+  with a fake transport, error messages, linking rules, the report's filters and
+  order, and the history (periods, summary, changes and the chart's geometry).
 - On a real site: `staging.zincomed.com`, which runs WooCommerce with the WoodMart
   theme.
