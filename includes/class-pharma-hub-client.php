@@ -220,6 +220,37 @@ class Pharma_Hub_Client {
     }
 
     /**
+     * The largest "easy adjust" threshold the hub accepts, in cents.
+     */
+    const MAX_EASY_ADJUST_CENTS = 100000;
+
+    /**
+     * The store's "easy adjust" threshold: an offer is an easy adjust when
+     * the store is more expensive by at most this many cents.
+     *
+     * @return array{cents: int}
+     * @throws Pharma_Hub_Error When the hub refuses or cannot be reached.
+     */
+    public function get_easy_adjust() {
+        return $this->request( 'GET', '/v1/plugin/kuantokusta/settings/easy-adjust' );
+    }
+
+    /**
+     * Changes the store's "easy adjust" threshold. The hub applies it on the
+     * next read of the report; nothing is recalculated.
+     *
+     * @param int $cents Whole number of cents, from 0 to MAX_EASY_ADJUST_CENTS.
+     * @return array{cents: int}
+     * @throws Pharma_Hub_Error When the value is out of range, or the hub refuses.
+     */
+    public function put_easy_adjust( $cents ) {
+        if ( ! is_int( $cents ) || $cents < 0 || $cents > self::MAX_EASY_ADJUST_CENTS ) {
+            throw new Pharma_Hub_Error( 'plugin_bad_cents', 'Not a whole number of cents in range' );
+        }
+        return $this->request( 'PUT', '/v1/plugin/kuantokusta/settings/easy-adjust', array(), array( 'cents' => $cents ) );
+    }
+
+    /**
      * Calls the hub.
      *
      * @param string            $method HTTP method.

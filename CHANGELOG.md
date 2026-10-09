@@ -6,6 +6,16 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-09
+
+### Added
+
+- *Ajuste fácil* section in *Definições*: shows the store's "easy adjust"
+  threshold and changes it, in whole cents. The value lives in the hub; the
+  report uses the new one at once. It needs a token with `prices:refresh`.
+  With a hub older than the change that accepts it before a first
+  collection, the screen says to ask for a collection first.
+
 ## [0.4.1] - 2026-10-09
 
 ### Fixed

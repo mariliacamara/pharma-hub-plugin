@@ -173,6 +173,20 @@ The *Regenerar* button sits under the report's header.
 - The description under the button reminds that a price the store just changed only
   shows after KuantoKusta re-imports the catalogue, usually at night.
 
+## Easy-adjust threshold (built in 0.5.0)
+
+*Definições* shows the store's "easy adjust" threshold and changes it.
+
+- The value lives in the hub (`GET`/`PUT /v1/plugin/kuantokusta/settings/easy-adjust`);
+  the plugin keeps no copy. Changing it needs a token with `prices:refresh`.
+- It is typed in whole cents, digits only. "0,10" or "10 cêntimos" is refused instead
+  of guessed: a value read the wrong way would mark the wrong offers.
+- After a change the cached report is forgotten, because it carries the marks made
+  with the old threshold.
+- The hub accepts a change before the store's first collection (hub pull request #12).
+  An older hub answers 409 `kk_settings_missing`; the screen then says to ask for a
+  collection first.
+
 ## Security
 
 - Every screen and action: `manage_woocommerce`.
