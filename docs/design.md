@@ -35,7 +35,7 @@ its database; a collection never runs inside a request.
 | Hub address | `PHARMA_HUB_URL` in `wp-config.php`, or the settings screen | https only, no credentials, query or fragment. http and private addresses only when `wp_get_environment_type()` is `local` or `development` |
 | Token | `PHARMA_HUB_TOKEN` in `wp-config.php` (recommended), or the settings screen | Stored encrypted (libsodium secretbox) with a key derived from `AUTH_KEY` and `AUTH_SALT`. Write-only field; only the last four characters are shown. Not autoloaded |
 | KuantoKusta key | Settings screen | Write-only. Sent once to `PUT /v1/plugin/kuantokusta/credential`; the hub checks it with KuantoKusta and stores it. The plugin keeps no copy |
-| EAN field | Settings screen | Empty: WooCommerce's own GTIN field (WooCommerce 9.2+). Otherwise the meta key another plugin uses. Added because where Zincomed keeps the EAN was not confirmed |
+| EAN field | Settings screen | The meta key of an EAN plugin, looked up after WooCommerce's own GTIN field. Defaults to `_alg_ean` (see "Linking") |
 
 Why the database is allowed for the token at all: some stores cannot edit
 `wp-config.php`. Encrypting with the site's secret keys means a copy of the database
@@ -52,33 +52,55 @@ unreadable and the screen asks for it again.
   and the hub's `requestId`. Screens branch on the code and show a Portuguese message
   with the request id as a reference. Codes made by the plugin start with `plugin_`.
 
-## Linking offers to products (next)
+## Linking offers to products (built in 0.2.0)
 
-A table of the plugin, `{prefix}pharma_hub_offer_links`:
+What Zincomed's admin shows (2026-10-09): the SKU column is labelled **REF**; the EAN
+is in two columns, WooCommerce's own "GTIN, UPC, EAN ou ISBN" (WooCommerce 9.2+, meta
+`_global_unique_id`) and "EAN" from the plugin "EAN Barcode Generator for WooCommerce"
+(WPFactory, formerly "EAN for WooCommerce", meta `_alg_ean` by default). On the
+products checked, both hold the same value.
+
+A table of the plugin, `{prefix}pharma_hub_offer_links`, created on activation and on
+any admin load after an update (`Pharma_Hub_Links::install`, versioned by an option):
 
 | Column | |
 |---|---|
-| `offer_id` | The hub's `offerId`. Primary key: it survives changes of the KuantoKusta reference |
-| `offer_ref` | KuantoKusta's reference, for display |
+| `offer_id` | The hub's offer `id`. Primary key: it survives changes of the KuantoKusta reference |
 | `product_id` | The WooCommerce product or variation |
 | `method` | `sku`, `ean`, `url` or `manual` |
 | `status` | `auto`, `confirmed` or `rejected` |
-| `linked_at`, `linked_by` | When and who, for `manual` and `rejected` |
+| `updated_at`, `updated_by` | When (UTC) and who; no one for `auto` |
 
 Keys, in this order (Zincomed, 347 offers: 237 by SKU, 77 by EAN, 33 only by name):
 
-1. **SKU**: `wc_get_product_id_by_sku( $offer['sku'] )`.
-2. **EAN**: `wc_get_product_id_by_global_unique_id()` (WooCommerce 9.2+), or the
-   configured meta key.
-3. **Store URL**: `url_to_postid( $offer['storeUrl'] )`, only when the URL is on this
-   site.
+1. **SKU**: `_sku` equal to the offer's `sku`, trimmed.
+2. **EAN**: 8 to 14 digits (spaces and hyphens removed). `_global_unique_id` first,
+   then the configured meta key (`_alg_ean` by default; empty to skip it).
+3. **Store URL**: `url_to_postid( $offer['storeUrl'] )`, only when the address is on
+   this site's host (with or without `www.`) and resolves to a product. On a staging
+   copy the offers point to the live site, so this key finds nothing there.
 
-A key that matches more than one product links nothing: the offer is shown as "to
-review". A link is computed once, when an offer first appears, and kept. "Mark as
-wrong" sets `rejected`; the user can then choose the product with WooCommerce's own
-product search. A rejected link is never recomputed automatically.
+The lookups query `wp_posts`/`wp_postmeta` directly, for products and variations
+outside the trash, and stop at two results: WooCommerce's own lookup functions return
+one id and hide a duplicate. A key that finds more than one product links nothing
+and the next key is tried; if none is precise, the offer is "ambiguous" and a person
+chooses. Pure rules in `Pharma_Hub_Linker`, tested without WordPress.
+
+- A link is found once, when an offer first appears, and kept.
+- If the linked product is deleted or trashed, the link is dropped and looked for again.
+- "Marcar como errado" sets `rejected`: the product is shown struck through and nothing
+  is linked automatically again until a person chooses a product (WooCommerce's own
+  product search) or asks to look again.
+- Ambiguous and unmatched offers are not stored; they are looked up on every visit.
+
+The *Vínculos* tab lists every offer the hub copied (`GET /offers`, all pages),
+those that need a person first, with counts by key and filters "Por resolver",
+"Vinculadas", "Todas".
 
 ## Report screen (next)
+
+The page under *WooCommerce → ZincoGroup Hub* has tabs; the report becomes the first
+one, before *Vínculos* and *Definições*.
 
 - One call to `GET /v1/plugin/kuantokusta/report?limit=200` (Zincomed has about 185
   active offers), following `nextCursor` if there are more, cached for a few minutes
