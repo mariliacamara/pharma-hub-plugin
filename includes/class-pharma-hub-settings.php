@@ -34,6 +34,13 @@ class Pharma_Hub_Settings {
     const TOKEN_PATTERN = '/^phk_[A-Za-z0-9_-]{43}$/';
 
     /**
+     * Where "EAN Barcode Generator for WooCommerce" (WPFactory, formerly
+     * "EAN for WooCommerce") keeps the EAN by default. Zincomed uses it
+     * alongside WooCommerce's own GTIN field.
+     */
+    const DEFAULT_EAN_META_KEY = '_alg_ean';
+
+    /**
      * A post meta key: what WooCommerce and other plugins use.
      */
     const META_KEY_PATTERN = '/^[A-Za-z0-9_\-]{1,191}$/';
@@ -78,7 +85,7 @@ class Pharma_Hub_Settings {
     }
 
     /**
-     * Whether a meta key is acceptable for the EAN field. Empty means "use
+     * Whether a meta key is acceptable for the EAN field. Empty means "only
      * WooCommerce's own GTIN field".
      *
      * @param string $key Meta key typed by the user.
@@ -208,20 +215,20 @@ class Pharma_Hub_Settings {
     }
 
     /**
-     * The meta key that holds the EAN, or an empty string for WooCommerce's
-     * own GTIN field.
+     * The meta key of the EAN plugin, looked up after WooCommerce's own GTIN
+     * field. Empty when only WooCommerce's field is used.
      *
      * @return string
      */
     public static function ean_meta_key() {
-        $key = (string) get_option( self::OPTION_EAN_META_KEY, '' );
+        $key = (string) get_option( self::OPTION_EAN_META_KEY, self::DEFAULT_EAN_META_KEY );
         return self::is_valid_meta_key( $key ) ? $key : '';
     }
 
     /**
      * Saves the meta key that holds the EAN.
      *
-     * @param string $key Meta key; empty means WooCommerce's own GTIN field.
+     * @param string $key Meta key; empty means only WooCommerce's own GTIN field.
      * @return bool False when the key is not acceptable; nothing is saved then.
      */
     public static function save_ean_meta_key( $key ) {
