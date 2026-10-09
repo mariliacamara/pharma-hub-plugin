@@ -117,4 +117,28 @@ final class LinkerTest extends TestCase {
         $this->assertNull( Pharma_Hub_Linker::clean_sku( '' ) );
         $this->assertNull( Pharma_Hub_Linker::clean_sku( 7135541 ) );
     }
+
+    public function test_search_finds_words_in_any_text_and_any_order() {
+        $texts = array( 'Allevyn Adhesive Penso 10x10cm 10un', '6129684', '5000223454111' );
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( 'allevyn', $texts ) );
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( '  6129684   ALLEVYN ', $texts ) );
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( '50002234', $texts ) );
+        $this->assertFalse( Pharma_Hub_Linker::matches_search( 'allevyn heel', $texts ) );
+        $this->assertFalse( Pharma_Hub_Linker::matches_search( '9999999', $texts ) );
+    }
+
+    public function test_search_does_not_join_two_texts_into_one_word() {
+        $this->assertFalse( Pharma_Hub_Linker::matches_search( '12', array( 'REF1', '2' ) ) );
+    }
+
+    public function test_an_empty_search_finds_everything() {
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( '', array( 'Andarilho' ) ) );
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( "  \t ", array() ) );
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( array( 'x' ), array( 'Andarilho' ) ) );
+    }
+
+    public function test_search_ignores_texts_that_are_not_text() {
+        $this->assertTrue( Pharma_Hub_Linker::matches_search( 'penso', array( null, array( 'x' ), 'Penso' ) ) );
+        $this->assertFalse( Pharma_Hub_Linker::matches_search( 'x', array( null, array( 'x' ) ) ) );
+    }
 }

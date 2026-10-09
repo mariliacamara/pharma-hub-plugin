@@ -50,8 +50,8 @@ class Pharma_Hub_Admin_Report {
             printf(
                 '<p>%s <a href="%s">%s</a></p>',
                 esc_html__( 'Ainda não está ligado ao hub.', 'pharma-hub-plugin' ),
-                esc_url( Pharma_Hub_Admin::tab_url( 'settings' ) ),
-                esc_html__( 'Configurar', 'pharma-hub-plugin' )
+                esc_url( Pharma_Hub_Admin::connection_url() ),
+                esc_html__( 'Configurar a ligação', 'pharma-hub-plugin' )
             );
             return;
         }
@@ -66,7 +66,6 @@ class Pharma_Hub_Admin_Report {
 
         list( $rows, $links, $products ) = self::prepare( $report, $filters );
 
-        self::render_styles();
         self::render_header( $report, $filters );
         Pharma_Hub_Admin_Runs::render_panel( $client );
         self::render_summary( $report, $filters );
@@ -85,7 +84,7 @@ class Pharma_Hub_Admin_Report {
 
         $client = Pharma_Hub_Settings::client();
         if ( null === $client ) {
-            Pharma_Hub_Admin::redirect_back( array( array( 'error', __( 'Configure primeiro o endereço do hub e o token.', 'pharma-hub-plugin' ) ) ) );
+            Pharma_Hub_Admin::redirect_back( array( array( 'error', __( 'Configure primeiro o endereço do hub e o token.', 'pharma-hub-plugin' ) ) ), 'connection' );
         }
         $filters = Pharma_Hub_Report::filters_from( wp_unslash( $_POST ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only known values are kept by filters_from().
         try {
@@ -203,58 +202,6 @@ class Pharma_Hub_Admin_Report {
     }
 
     /**
-     * The look of the report: summary cards, pills and the table.
-     *
-     * Every text colour has a contrast of at least 4.5:1 on its ground, and
-     * no meaning rests on colour alone: differences keep their sign and each
-     * pill says what it is.
-     *
-     * @return void
-     */
-    private static function render_styles() {
-        ?>
-        <style>
-            .pharma-hub-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; margin: 12px 0; padding: 12px 16px; background: #fff; border: 1px solid #c3c4c7; }
-            .pharma-hub-head strong { font-size: 14px; }
-            .pharma-hub-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
-            .pharma-hub-card { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; color: #50575e; text-decoration: none; }
-            .pharma-hub-card:hover, .pharma-hub-card:focus { border-color: #2271b1; color: #1d2327; }
-            .pharma-hub-card b { font-size: 22px; line-height: 1.2; font-weight: 600; color: #1d2327; font-variant-numeric: tabular-nums; }
-            .pharma-hub-card.is-up b { color: #8a3b00; }
-            .pharma-hub-card.is-down b { color: #0b5d3b; }
-            .pharma-hub-card.current, .pharma-hub-card.current b, .pharma-hub-card.current:hover { background: #1d5fa0; border-color: #1d5fa0; color: #fff; }
-            .pharma-hub-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0; }
-            .pharma-hub-tools form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0; }
-            .pharma-hub-tools .count { color: #50575e; }
-            .pharma-hub-scroll { overflow-x: auto; background: #fff; border: 1px solid #c3c4c7; }
-            .pharma-hub-report { width: 100%; min-width: 900px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-            .pharma-hub-report th { padding: 10px 14px; background: #f6f7f7; border-bottom: 1px solid #c3c4c7; text-align: left; font-weight: 600; white-space: nowrap; }
-            .pharma-hub-report th a { color: #1d2327; text-decoration: none; }
-            .pharma-hub-report td { padding: 10px 14px; border-bottom: 1px solid #dcdcde; vertical-align: top; }
-            .pharma-hub-report tr:last-child td { border-bottom: 0; }
-            .pharma-hub-report .num { text-align: right; white-space: nowrap; }
-            .pharma-hub-report .main { font-size: 14px; }
-            .pharma-hub-report .name { font-size: 14px; font-weight: 600; text-decoration: none; }
-            .pharma-hub-report .sub { display: block; margin-top: 2px; color: #50575e; font-size: 12px; }
-            .pharma-hub-report .none { color: #50575e; }
-            .pharma-hub-report .diff { font-size: 14px; font-weight: 600; }
-            .pharma-hub-report .diff.is-up { color: #8a3b00; }
-            .pharma-hub-report .diff.is-down { color: #0b5d3b; }
-            .pharma-hub-report tr.is-easy td { background: #f0f6fc; }
-            .pharma-hub-report tr.is-check td { background: #fcf9e8; }
-            .pharma-hub-track { position: relative; width: 84px; height: 4px; margin-top: 6px; background: #dcdcde; border-radius: 2px; }
-            .pharma-hub-track i { position: absolute; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: #1d2327; }
-            .pharma-hub-pill { display: inline-block; margin: 0 4px 4px 0; padding: 2px 10px; border-radius: 999px; background: #f0f0f1; color: #3c434a; font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
-            .pharma-hub-pill.easy { background: #1d5fa0; color: #fff; }
-            .pharma-hub-pill.more_expensive { background: #fdf0e4; color: #8a3b00; }
-            .pharma-hub-pill.cheapest { background: #e3f3ea; color: #0b5d3b; }
-            .pharma-hub-pill.tied { background: #e5eef7; color: #1d4f80; }
-            .pharma-hub-pill.check { background: #f5e6ab; color: #614200; }
-        </style>
-        <?php
-    }
-
-    /**
      * When the data was collected and how that went.
      *
      * @param array $report  Report from the hub.
@@ -266,7 +213,7 @@ class Pharma_Hub_Admin_Report {
         $summary = isset( $report['summary'] ) ? $report['summary'] : array();
         ?>
         <div class="pharma-hub-head">
-            <div>
+            <div class="grow">
                 <strong><?php esc_html_e( 'Preços comparados com o KuantoKusta', 'pharma-hub-plugin' ); ?></strong><br>
                 <?php if ( ! $run ) : ?>
                     <?php esc_html_e( 'Ainda não houve nenhuma coleta de preços.', 'pharma-hub-plugin' ); ?>
@@ -478,7 +425,7 @@ class Pharma_Hub_Admin_Report {
         $labels   = self::outcome_labels();
         ?>
         <div class="pharma-hub-scroll">
-        <table class="pharma-hub-report">
+        <table class="pharma-hub-table">
             <thead>
                 <tr>
                     <th scope="col"><?php self::sort_link( __( 'Produto', 'pharma-hub-plugin' ), 'name', $filters ); ?></th>

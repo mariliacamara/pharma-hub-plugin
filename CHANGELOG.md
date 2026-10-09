@@ -6,6 +6,35 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-09
+
+### Changed
+
+- The plugin has its own menu in the sidebar, named after the store's brand
+  ("ZincoGroup Hub"), instead of an entry under WooCommerce. Inside it:
+  - **KuantoKusta**: the report, the links and KuantoKusta's settings;
+  - **Ligação ao hub**: the hub's address and the token, which every
+    integration shares.
+  A second integration becomes another entry of the same menu, with its own
+  settings. The address of the KuantoKusta page did not change.
+- *Definições* is a status strip and one panel per setting (easy adjust,
+  KuantoKusta key, EAN field), each with its own button, instead of one long
+  form with a single "Guardar". Saving one no longer touches the others.
+- The address and the token moved to *Ligação ao hub*. When both come from
+  `wp-config.php` they are shown as information, not as disabled fields.
+- *Vínculos* was redrawn like the report:
+  - a strip says at once whether anything needs a person;
+  - the counts are cards that filter the list, one per way of linking;
+  - "Marcar como errado" is a quiet link instead of a button on every row;
+  - how an offer was linked is a pill;
+  - the product shows its name with the REF under it;
+  - offers without a product are tinted.
+
+### Added
+
+- Search in *Vínculos* by name, REF or EAN, of the offer or of its product,
+  ignoring case and accents.
+
 ## [0.6.0] - 2026-10-09
 
 ### Changed

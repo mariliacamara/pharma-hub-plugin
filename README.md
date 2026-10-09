@@ -18,6 +18,7 @@ technical name of the service and of this repository.
 | Report screen, filters, CSV export | Built (0.3.0) |
 | "Regenerar" button | Built (0.4.0) |
 | Easy-adjust threshold in *Definições* | Built (0.5.0) |
+| Own menu, *Ligação ao hub* page, search in *Vínculos* | Built (0.7.0) |
 
 ## Requirements
 
@@ -41,10 +42,10 @@ technical name of the service and of this repository.
    define( 'PHARMA_HUB_TOKEN', 'phk_...' );
    ```
 
-   Without them, type both in *WooCommerce → ZincoGroup Hub → Definições*. The token is then
+   Without them, type both in *ZincoGroup Hub → Ligação ao hub*. The token is then
    stored encrypted with a key derived from the site's secret keys in
    `wp-config.php`; if those keys are regenerated, the token has to be typed again.
-3. In the same screen, send the store's KuantoKusta API key to the hub. The hub
+3. In *ZincoGroup Hub → KuantoKusta → Definições*, send the store's KuantoKusta API key to the hub. The hub
    checks it with KuantoKusta and stores it; the plugin keeps no copy.
 4. The EAN is looked up in WooCommerce's own "GTIN, UPC, EAN or ISBN" field and then
    in `_alg_ean`, the field of "EAN Barcode Generator for WooCommerce". If the store
@@ -85,7 +86,7 @@ includes/
   class-pharma-hub-error.php             a failed call, with the hub's error code
   class-pharma-hub-linker.php            linking rules: SKU, then EAN, then store address
   class-pharma-hub-links.php             the links table and the lookups on this site
-  class-pharma-hub-admin.php             menu, tabs, settings tab, form actions
+  class-pharma-hub-admin.php             menu, tabs, settings, hub connection page, shared styles
   class-pharma-hub-format.php            money, percentages, Portugal time, CSV cells
   class-pharma-hub-report.php            reading, filtering and sorting the report
   class-pharma-hub-admin-report.php      the Relatório tab and the CSV export
