@@ -118,7 +118,7 @@ class Pharma_Hub_Admin_Report {
             __( 'N.º de lojas', 'pharma-hub-plugin' ),
             __( 'Situação', 'pharma-hub-plugin' ),
             __( 'Ajuste fácil', 'pharma-hub-plugin' ),
-            __( 'Conferir vínculo', 'pharma-hub-plugin' ),
+            __( 'Diferença suspeita', 'pharma-hub-plugin' ),
             __( 'Preço com portes (€)', 'pharma-hub-plugin' ),
             __( 'Menor total com portes (€)', 'pharma-hub-plugin' ),
             __( 'Loja do menor total', 'pharma-hub-plugin' ),
@@ -282,7 +282,7 @@ class Pharma_Hub_Admin_Report {
             printf(
                 '<a href="%s"><span class="pharma-hub-badge check">%s: %d</span></a>',
                 esc_url( self::url( array_merge( $filters, array( 'check' => true ) ) ) ),
-                esc_html__( 'Conferir vínculo', 'pharma-hub-plugin' ),
+                esc_html__( 'Diferença suspeita', 'pharma-hub-plugin' ),
                 isset( $summary['checkLink'] ) ? (int) $summary['checkLink'] : 0
             );
             ?>
@@ -291,7 +291,7 @@ class Pharma_Hub_Admin_Report {
             <?php
             printf(
                 /* translators: 1: easy-adjust threshold, 2: link-check percentage */
-                esc_html__( 'Ajuste fácil: a loja está mais cara por até %1$s. Conferir vínculo: a diferença é de %2$s%% ou mais, o que costuma indicar outro produto, variante ou embalagem na página do KuantoKusta.', 'pharma-hub-plugin' ),
+                esc_html__( 'Ajuste fácil: a loja está mais cara por até %1$s. Diferença suspeita: a diferença é de %2$s%% ou mais. Costuma querer dizer que a página do KuantoKusta é de outro produto, variante ou embalagem; confirme antes de mudar o preço.', 'pharma-hub-plugin' ),
                 esc_html( Pharma_Hub_Format::money( isset( $report['easyAdjustCents'] ) ? (int) $report['easyAdjustCents'] : 10 ) ),
                 (int) ( isset( $report['checkLinkPercent'] ) ? $report['checkLinkPercent'] : 50 )
             );
@@ -345,7 +345,7 @@ class Pharma_Hub_Admin_Report {
                 <option value="all" <?php selected( $filters['state'], 'all' ); ?>><?php esc_html_e( 'Incluir sem stock e retiradas', 'pharma-hub-plugin' ); ?></option>
             </select>
             <label><input type="checkbox" name="easy" value="1" <?php checked( $filters['easy'] ); ?>> <?php esc_html_e( 'Só ajuste fácil', 'pharma-hub-plugin' ); ?></label>
-            <label><input type="checkbox" name="check" value="1" <?php checked( $filters['check'] ); ?>> <?php esc_html_e( 'Só conferir vínculo', 'pharma-hub-plugin' ); ?></label>
+            <label><input type="checkbox" name="check" value="1" <?php checked( $filters['check'] ); ?>> <?php esc_html_e( 'Só diferença suspeita', 'pharma-hub-plugin' ); ?></label>
             <label><input type="checkbox" name="unlinked" value="1" <?php checked( $filters['unlinked'] ); ?>> <?php esc_html_e( 'Só sem vínculo', 'pharma-hub-plugin' ); ?></label>
             <label><input type="checkbox" name="shipping" value="1" <?php checked( $filters['shipping'] ); ?>> <?php esc_html_e( 'Comparar com portes', 'pharma-hub-plugin' ); ?></label>
             <button type="submit" class="button"><?php esc_html_e( 'Filtrar', 'pharma-hub-plugin' ); ?></button>
@@ -447,7 +447,7 @@ class Pharma_Hub_Admin_Report {
                                 <br><span class="pharma-hub-badge easy"><?php esc_html_e( 'Ajuste fácil', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
                             <?php if ( ! empty( $row['checkLink'] ) ) : ?>
-                                <br><span class="pharma-hub-badge check"><?php esc_html_e( 'Conferir vínculo', 'pharma-hub-plugin' ); ?></span>
+                                <br><span class="pharma-hub-badge check"><?php esc_html_e( 'Diferença suspeita', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
                             <?php if ( ! empty( $row['stale'] ) ) : ?>
                                 <br><span class="pharma-hub-badge stale" title="<?php echo esc_attr( Pharma_Hub_Format::time( $row['comparedAt'] ) ); ?>"><?php esc_html_e( 'coleta anterior', 'pharma-hub-plugin' ); ?></span>
