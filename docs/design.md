@@ -105,19 +105,24 @@ The first tab of *WooCommerce → ZincoGroup Hub*, before *Vínculos* and *Defin
   185 for Zincomed), kept for 5 minutes per offer state. "Atualizar" reads the hub
   again. The report's offers are linked on the way, as in *Vínculos*.
 - **Header:** when the last collection ended (Portugal time) and how; a warning with
-  the number of `stale` rows; the hub's summary by outcome, easy adjust and link
-  check, each a link that filters the table; the thresholds in words.
+  the number of `stale` rows; the hub's summary by outcome, easy adjust and
+  "Diferença suspeita", each a link that filters the table; the thresholds in words.
+- **"Diferença suspeita"** (renamed from "Conferir vínculo" in 0.4.0): the difference
+  is 50% or more either way. It is shown under that name because the cause is usually
+  the KuantoKusta page (another product, variant or pack size), not the link to the
+  WooCommerce product. When KuantoKusta moves an offer to the right page the offer keeps
+  its reference, so the hub keeps the same offer id and the plugin's link stays.
 - **Table:**
   - product (the linked WooCommerce product, or the offer's name with "sem vínculo");
   - REF and a link to the KuantoKusta page;
   - the store's price, the lowest price and its store;
   - the difference in euros and percent, the position;
-  - the outcome, with badges for easy adjust (green row), check the link (orange row)
-    and "coleta anterior" (stale).
+  - the outcome, with badges for easy adjust (green row), "Diferença suspeita" (orange
+    row, the hub's `checkLink`) and "coleta anterior" (stale).
 - **Filters (query string, so a view can be bookmarked):**
   - outcome;
   - offer state (active, or including out of stock and delisted);
-  - only easy adjust, only check the link, only without a link;
+  - only easy adjust, only "Diferença suspeita", only without a link;
   - "Comparar com portes".
 - **Sorting:** by product, the store's price, the difference or the percentage. Rows
   without a value always go last.
@@ -141,12 +146,30 @@ The first tab of *WooCommerce → ZincoGroup Hub*, before *Vínculos* and *Defin
   leading apostrophe, so a product name cannot run as a formula. Numbers formatted by
   the plugin are exempt, so a negative difference stays a number.
 
-## Regenerate (next)
+## Regenerate (built in 0.4.0)
 
-`POST /v1/plugin/kuantokusta/runs` with the WordPress login as `requestedBy`, then
-`GET /runs/{id}` every 10 seconds from the page, through an admin-ajax action that
-checks the capability and a nonce. 429 `kk_run_too_soon` shows when it can be asked
-again (from `Retry-After`); 409 `kk_key_missing` points to the settings.
+The *Regenerar* button sits under the report's header.
+
+1. Pressing it posts to admin-ajax (`pharma_hub_run_start`, capability and nonce). PHP
+   calls `POST /v1/plugin/kuantokusta/runs` with the WordPress login as `requestedBy`
+   (one line, at most 120 characters). If a collection is already waiting or running,
+   the hub returns that one and the page follows it.
+2. Every 10 seconds the page asks `pharma_hub_run_status`, which calls
+   `GET /runs/{id}` (the id must be a UUID; anything else never reaches the hub). The
+   line next to the button says "Coleta pedida; está na fila", "A recolher preços: 40
+   de 185 páginas" and so on.
+3. When the collection ends, however it ended, the cached report is dropped and the
+   page reloads; the header then says how it ended.
+
+- Opening the report while a collection runs (asked by anyone, or by the daily
+  schedule) shows its progress at once and keeps the button disabled:
+  `GET /runs/latest` is read on every view of the report.
+- 429 `kk_run_too_soon` says from what time a new collection can be asked, from
+  `Retry-After`, in Portugal time. 409 `kk_key_missing` points to *Definições*.
+- Three failed status checks in a row stop the following and say so.
+- The browser only talks to admin-ajax; the token stays in PHP.
+- The description under the button reminds that a price the store just changed only
+  shows after KuantoKusta re-imports the catalogue, usually at night.
 
 ## Security
 

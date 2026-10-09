@@ -16,7 +16,7 @@ technical name of the service and of this repository.
 | Client of the hub's API | Built (0.1.0) |
 | Linking offers to WooCommerce products | Built (0.2.0) |
 | Report screen, filters, CSV export | Built (0.3.0) |
-| "Regenerate" button | Designed |
+| "Regenerar" button | Built (0.4.0) |
 
 ## Requirements
 
@@ -49,7 +49,8 @@ technical name of the service and of this repository.
    in `_alg_ean`, the field of "EAN Barcode Generator for WooCommerce". If the store
    uses another EAN plugin, type its meta key in *Definições*.
 5. *Relatório* shows each product's price against the lowest on KuantoKusta, with
-   filters and a CSV export.
+   filters and a CSV export. *Regenerar* asks the hub for a new collection and follows
+   it until the report is updated.
 6. *Vínculos* links each KuantoKusta offer to a product by SKU, EAN or store address,
    and lists the offers a person has to resolve.
 
@@ -87,6 +88,8 @@ includes/
   class-pharma-hub-format.php            money, percentages, Portugal time, CSV cells
   class-pharma-hub-report.php            reading, filtering and sorting the report
   class-pharma-hub-admin-report.php      the Relatório tab and the CSV export
+  class-pharma-hub-admin-runs.php        the Regenerar button and its admin-ajax actions
+assets/js/regenerate.js                  follows a collection from the report page
   class-pharma-hub-admin-links.php       the Vínculos tab and its actions
 uninstall.php                            removes the settings when the plugin is deleted
 tests/                                   PHPUnit, without WordPress
