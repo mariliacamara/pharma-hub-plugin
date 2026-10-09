@@ -104,7 +104,8 @@ class Pharma_Hub_Admin {
         }
         wp_enqueue_script( 'wc-enhanced-select' );
         wp_enqueue_style( 'woocommerce_admin_styles' );
-        if ( 'report' === self::current_tab() ) {
+        // The history of one offer has no "Regenerar" button to drive.
+        if ( 'report' === self::current_tab() && '' === Pharma_Hub_Admin_History::asked_offer_id() ) {
             Pharma_Hub_Admin_Runs::enqueue();
         }
     }
@@ -186,6 +187,8 @@ class Pharma_Hub_Admin {
                 self::render_settings_tab();
             } elseif ( 'links' === $current ) {
                 Pharma_Hub_Admin_Links::render();
+            } elseif ( '' !== Pharma_Hub_Admin_History::asked_offer_id() ) {
+                Pharma_Hub_Admin_History::render( Pharma_Hub_Admin_History::asked_offer_id() );
             } else {
                 Pharma_Hub_Admin_Report::render();
             }
@@ -342,6 +345,28 @@ class Pharma_Hub_Admin {
             .pharma-hub-head .grow { flex: 1 1 320px; }
             .pharma-hub-head strong { font-size: 14px; }
             .pharma-hub-head .sub { display: block; color: #50575e; }
+            .pharma-hub-head .title { margin-right: 8px; font-size: 16px; }
+            .pharma-hub-back { margin: 12px 0 0; }
+            .pharma-hub-figures { display: flex; flex-wrap: wrap; gap: 8px 28px; font-variant-numeric: tabular-nums; }
+            .pharma-hub-figures div { display: flex; flex-direction: column; gap: 2px; }
+            .pharma-hub-figures small { color: #50575e; font-size: 12px; }
+            .pharma-hub-figures b { font-size: 20px; line-height: 1.2; font-weight: 600; color: #1d2327; }
+            .pharma-hub-figures b.is-up { color: #8a3b00; }
+            .pharma-hub-figures b.is-down { color: #0b5d3b; }
+            .pharma-hub-history { margin: 12px 0; }
+            .pharma-hub-history .pharma-hub-tools { margin: 0 0 8px; }
+            .pharma-hub-history .grow { flex: 1 1 240px; }
+            .pharma-hub-history .none { color: #50575e; }
+            .pharma-hub-tools h2 { margin: 0; font-size: 16px; }
+            .pharma-hub-seg { display: flex; flex-wrap: wrap; gap: 4px; }
+            .pharma-hub-seg a { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; background: #fff; border: 1px solid #c3c4c7; border-radius: 3px; color: #1d2327; font-weight: 600; text-decoration: none; }
+            .pharma-hub-seg a:hover, .pharma-hub-seg a:focus { border-color: #2271b1; }
+            .pharma-hub-seg a.current { background: #1d5fa0; border-color: #1d5fa0; color: #fff; }
+            .pharma-hub-legend { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0 0 8px; }
+            .pharma-hub-legend span { display: inline-flex; align-items: center; gap: 8px; }
+            .pharma-hub-legend i { display: inline-block; width: 16px; height: 12px; border: 1px solid #dcdcde; }
+            .pharma-hub-chart { overflow-x: auto; }
+            .pharma-hub-chart svg { display: block; width: 100%; min-width: 720px; height: auto; }
             .pharma-hub-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
             .pharma-hub-card { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; color: #50575e; text-decoration: none; }
             .pharma-hub-card:hover, .pharma-hub-card:focus { border-color: #2271b1; color: #1d2327; }

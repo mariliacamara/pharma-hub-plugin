@@ -171,6 +171,67 @@ class Pharma_Hub_Client {
     }
 
     /**
+     * The shape of an offer id of the hub: a positive whole number.
+     */
+    const OFFER_ID_PATTERN = '/^[1-9]\d{0,17}$/';
+
+    /**
+     * Pages of 200 comparisons read for one offer's history: 1,000 entries,
+     * more than two years of daily collections.
+     */
+    const HISTORY_PAGES = 5;
+
+    /**
+     * Whether a value has the shape of an offer id of the hub.
+     *
+     * @param mixed $offer_id Value to check.
+     * @return bool
+     */
+    public static function is_offer_id( $offer_id ) {
+        return is_string( $offer_id ) && 1 === preg_match( self::OFFER_ID_PATTERN, $offer_id );
+    }
+
+    /**
+     * The comparisons of one offer, newest first: one for each collection
+     * that reached it.
+     *
+     * Follows the hub's pages up to HISTORY_PAGES. "complete" is false when
+     * older comparisons were left unread.
+     *
+     * @param string $offer_id Hub offer id.
+     * @return array{entries: array[], complete: bool}
+     * @throws Pharma_Hub_Error When the id is not an offer id, or the hub refuses (404 for an offer of another store).
+     */
+    public function get_offer_history( $offer_id ) {
+        if ( ! self::is_offer_id( $offer_id ) ) {
+            throw new Pharma_Hub_Error( 'plugin_bad_offer_id', 'Not an offer id' );
+        }
+        $entries = array();
+        $before  = null;
+        for ( $page = 0; $page < self::HISTORY_PAGES; $page++ ) {
+            $query = array( 'limit' => 200 );
+            if ( null !== $before ) {
+                $query['before'] = $before;
+            }
+            $answer = $this->request( 'GET', '/v1/plugin/kuantokusta/offers/' . $offer_id . '/history', $query );
+            if ( isset( $answer['entries'] ) && is_array( $answer['entries'] ) ) {
+                $entries = array_merge( $entries, $answer['entries'] );
+            }
+            $before = isset( $answer['nextCursor'] ) && is_string( $answer['nextCursor'] ) ? $answer['nextCursor'] : null;
+            if ( null === $before ) {
+                return array(
+                    'entries'  => $entries,
+                    'complete' => true,
+                );
+            }
+        }
+        return array(
+            'entries'  => $entries,
+            'complete' => false,
+        );
+    }
+
+    /**
      * The shape of a collection id: a UUID.
      */
     const RUN_ID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';

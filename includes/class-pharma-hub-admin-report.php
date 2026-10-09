@@ -29,7 +29,7 @@ class Pharma_Hub_Admin_Report {
      *
      * @return array
      */
-    private static function outcome_labels() {
+    public static function outcome_labels() {
         return array(
             'cheapest'       => __( 'Mais barata', 'pharma-hub-plugin' ),
             'tied'           => __( 'Empatada', 'pharma-hub-plugin' ),
@@ -471,6 +471,9 @@ class Pharma_Hub_Admin_Report {
                                 }
                                 ?>
                                 <a href="<?php echo esc_url( $row['productUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'ver no KuantoKusta', 'pharma-hub-plugin' ); ?></a>
+                                <?php if ( Pharma_Hub_Client::is_offer_id( $id ) ) : ?>
+                                    · <a href="<?php echo esc_url( Pharma_Hub_Admin_History::url( $filters, $id ) ); ?>"><?php esc_html_e( 'histórico', 'pharma-hub-plugin' ); ?></a>
+                                <?php endif; ?>
                             </span>
                         </td>
                         <td class="num main"><?php echo esc_html( Pharma_Hub_Format::money( $own ) ); ?></td>
@@ -600,7 +603,7 @@ class Pharma_Hub_Admin_Report {
      * @param array $extra   More arguments.
      * @return string
      */
-    private static function url( $filters, $extra = array() ) {
+    public static function url( $filters, $extra = array() ) {
         return Pharma_Hub_Admin::tab_url( 'report', array_merge( self::query_args( $filters ), $extra ) );
     }
 }
