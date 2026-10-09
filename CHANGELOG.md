@@ -6,6 +6,21 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-09
+
+### Added
+
+- *Relatório* tab, the first one: for each offer, the linked product, the
+  store's price, the lowest price on KuantoKusta and its store, the
+  difference in euros and percent and the position. Easy adjust and
+  "check the link" are highlighted; prices from an older collection are
+  marked. The header says when the last collection ended and how.
+- Filters by outcome, offer state, easy adjust, link check and missing
+  link, and a switch to compare with shipping; sorting by product, price,
+  difference or percentage.
+- CSV export of the filtered report for Excel in Portugal, protected
+  against formulas in product names.
+
 ## [0.2.0] - 2026-10-09
 
 ### Added
