@@ -1,0 +1,79 @@
+name: Release
+
+# Creates the vX.Y.Z tag and GitHub release, with the CHANGELOG.md notes and
+# the installable plugin zip, whenever main carries a version that has no
+# tag yet. Pushes that do not change the version do nothing.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit to release (full or short SHA); empty releases the latest main
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve commit, version and notes
+        id: meta
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          sha="${INPUT_SHA:-$GITHUB_SHA}"
+          if ! [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "::error::Invalid commit SHA: $sha"
+            exit 1
+          fi
+          sha="$(git rev-parse --verify "${sha}^{commit}")"
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::$sha is not on main."
+            exit 1
+          fi
+          version="$(.github/scripts/release-meta.sh "$sha" notes.md)"
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" >/dev/null; then
+            echo "v${version} already exists; nothing to release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build plugin zip
+        if: steps.meta.outputs.skip == 'false'
+        env:
+          SHA: ${{ steps.meta.outputs.sha }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        # --worktree-attributes applies the current .gitattributes, so older
+        # commits are packaged without development files too.
+        run: |
+          git archive --worktree-attributes --format=zip --prefix=pharma-hub-plugin/ \
+            -o "pharma-hub-plugin-${VERSION}.zip" "$SHA"
+          unzip -l "pharma-hub-plugin-${VERSION}.zip"
+
+      - name: Create tag and release
+        if: steps.meta.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.meta.outputs.sha }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" "pharma-hub-plugin-${VERSION}.zip" \
+            --target "$SHA" \
+            --title "$VERSION" \
+            --notes-file notes.md

@@ -1,0 +1,26 @@
+{
+    "name": "camorim/pharma-hub-plugin",
+    "description": "WordPress plugin that shows the KuantoKusta price report computed by the hub.",
+    "authors": [
+        {
+            "name": "Camorim Tech"
+        }
+    ],
+    "type": "wordpress-plugin",
+    "license": "proprietary",
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "phpunit/phpunit": "^9.6"
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
+        "test": "phpunit"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
