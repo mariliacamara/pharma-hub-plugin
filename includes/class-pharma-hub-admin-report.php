@@ -69,6 +69,7 @@ class Pharma_Hub_Admin_Report {
         self::render_styles();
         self::render_header( $report, $filters );
         Pharma_Hub_Admin_Runs::render_panel( $client );
+        self::render_summary( $report, $filters );
         self::render_filters( $filters, count( $rows ) );
         self::render_table( $rows, $links, $products, $filters );
     }
@@ -202,29 +203,59 @@ class Pharma_Hub_Admin_Report {
     }
 
     /**
-     * The colours of the highlights.
+     * The look of the report: summary cards, pills and the table.
+     *
+     * Every text colour has a contrast of at least 4.5:1 on its ground, and
+     * no meaning rests on colour alone: differences keep their sign and each
+     * pill says what it is.
      *
      * @return void
      */
     private static function render_styles() {
         ?>
         <style>
-            .pharma-hub-report td, .pharma-hub-report th { vertical-align: top; }
+            .pharma-hub-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; margin: 12px 0; padding: 12px 16px; background: #fff; border: 1px solid #c3c4c7; }
+            .pharma-hub-head strong { font-size: 14px; }
+            .pharma-hub-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
+            .pharma-hub-card { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; color: #50575e; text-decoration: none; }
+            .pharma-hub-card:hover, .pharma-hub-card:focus { border-color: #2271b1; color: #1d2327; }
+            .pharma-hub-card b { font-size: 22px; line-height: 1.2; font-weight: 600; color: #1d2327; font-variant-numeric: tabular-nums; }
+            .pharma-hub-card.is-up b { color: #8a3b00; }
+            .pharma-hub-card.is-down b { color: #0b5d3b; }
+            .pharma-hub-card.current, .pharma-hub-card.current b, .pharma-hub-card.current:hover { background: #1d5fa0; border-color: #1d5fa0; color: #fff; }
+            .pharma-hub-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0; }
+            .pharma-hub-tools form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0; }
+            .pharma-hub-tools .count { color: #50575e; }
+            .pharma-hub-scroll { overflow-x: auto; background: #fff; border: 1px solid #c3c4c7; }
+            .pharma-hub-report { width: 100%; min-width: 900px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+            .pharma-hub-report th { padding: 10px 14px; background: #f6f7f7; border-bottom: 1px solid #c3c4c7; text-align: left; font-weight: 600; white-space: nowrap; }
+            .pharma-hub-report th a { color: #1d2327; text-decoration: none; }
+            .pharma-hub-report td { padding: 10px 14px; border-bottom: 1px solid #dcdcde; vertical-align: top; }
+            .pharma-hub-report tr:last-child td { border-bottom: 0; }
             .pharma-hub-report .num { text-align: right; white-space: nowrap; }
-            .pharma-hub-report tr.is-easy td { background: #edfaef; }
-            .pharma-hub-report tr.is-check td { background: #fcf0e3; }
-            .pharma-hub-badge { display: inline-block; padding: 1px 6px; margin: 2px 4px 0 0; border-radius: 3px; font-size: 11px; line-height: 1.6; white-space: nowrap; }
-            .pharma-hub-badge.easy { background: #00a32a; color: #fff; }
-            .pharma-hub-badge.check { background: #dba617; color: #1d2327; }
-            .pharma-hub-badge.stale, .pharma-hub-badge.unlinked { background: #dcdcde; color: #1d2327; }
-            .pharma-hub-summary a { margin-right: 12px; text-decoration: none; }
-            .pharma-hub-summary a.current { font-weight: 600; color: #1d2327; border-bottom: 2px solid #2271b1; }
+            .pharma-hub-report .main { font-size: 14px; }
+            .pharma-hub-report .name { font-size: 14px; font-weight: 600; text-decoration: none; }
+            .pharma-hub-report .sub { display: block; margin-top: 2px; color: #50575e; font-size: 12px; }
+            .pharma-hub-report .none { color: #50575e; }
+            .pharma-hub-report .diff { font-size: 14px; font-weight: 600; }
+            .pharma-hub-report .diff.is-up { color: #8a3b00; }
+            .pharma-hub-report .diff.is-down { color: #0b5d3b; }
+            .pharma-hub-report tr.is-easy td { background: #f0f6fc; }
+            .pharma-hub-report tr.is-check td { background: #fcf9e8; }
+            .pharma-hub-track { position: relative; width: 84px; height: 4px; margin-top: 6px; background: #dcdcde; border-radius: 2px; }
+            .pharma-hub-track i { position: absolute; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: #1d2327; }
+            .pharma-hub-pill { display: inline-block; margin: 0 4px 4px 0; padding: 2px 10px; border-radius: 999px; background: #f0f0f1; color: #3c434a; font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
+            .pharma-hub-pill.easy { background: #1d5fa0; color: #fff; }
+            .pharma-hub-pill.more_expensive { background: #fdf0e4; color: #8a3b00; }
+            .pharma-hub-pill.cheapest { background: #e3f3ea; color: #0b5d3b; }
+            .pharma-hub-pill.tied { background: #e5eef7; color: #1d4f80; }
+            .pharma-hub-pill.check { background: #f5e6ab; color: #614200; }
         </style>
         <?php
     }
 
     /**
-     * When the data was collected, how that went, and the counts.
+     * When the data was collected and how that went.
      *
      * @param array $report  Report from the hub.
      * @param array $filters Current filters.
@@ -234,21 +265,24 @@ class Pharma_Hub_Admin_Report {
         $run     = isset( $report['run'] ) ? $report['run'] : null;
         $summary = isset( $report['summary'] ) ? $report['summary'] : array();
         ?>
-        <p>
-            <?php if ( ! $run ) : ?>
-                <?php esc_html_e( 'Ainda não houve nenhuma coleta de preços.', 'pharma-hub-plugin' ); ?>
-            <?php else : ?>
-                <?php
-                printf(
-                    /* translators: 1: date and time, 2: how it ended */
-                    esc_html__( 'Última coleta: %1$s (hora de Portugal), %2$s.', 'pharma-hub-plugin' ),
-                    '<strong>' . esc_html( Pharma_Hub_Format::time( $run['finishedAt'] ) ) . '</strong>',
-                    esc_html( self::run_status( $run ) )
-                );
-                ?>
-            <?php endif; ?>
-            <a href="<?php echo esc_url( self::url( $filters, array( 'refresh' => '1' ) ) ); ?>"><?php esc_html_e( 'Atualizar', 'pharma-hub-plugin' ); ?></a>
-        </p>
+        <div class="pharma-hub-head">
+            <div>
+                <strong><?php esc_html_e( 'Preços comparados com o KuantoKusta', 'pharma-hub-plugin' ); ?></strong><br>
+                <?php if ( ! $run ) : ?>
+                    <?php esc_html_e( 'Ainda não houve nenhuma coleta de preços.', 'pharma-hub-plugin' ); ?>
+                <?php else : ?>
+                    <?php
+                    printf(
+                        /* translators: 1: date and time, 2: how it ended */
+                        esc_html__( 'Última coleta: %1$s (hora de Portugal), %2$s.', 'pharma-hub-plugin' ),
+                        '<strong>' . esc_html( Pharma_Hub_Format::time( $run['finishedAt'] ) ) . '</strong>',
+                        esc_html( self::run_status( $run ) )
+                    );
+                    ?>
+                <?php endif; ?>
+            </div>
+            <a class="button" href="<?php echo esc_url( self::url( $filters, array( 'refresh' => '1' ) ) ); ?>"><?php esc_html_e( 'Atualizar', 'pharma-hub-plugin' ); ?></a>
+        </div>
         <?php if ( ! empty( $summary['stale'] ) ) : ?>
             <div class="notice notice-warning inline"><p>
                 <?php
@@ -260,55 +294,71 @@ class Pharma_Hub_Admin_Report {
                 ?>
             </p></div>
         <?php endif; ?>
-        <p class="pharma-hub-summary">
-            <?php
-            echo esc_html__( 'Mostrar:', 'pharma-hub-plugin' ) . ' ';
-            // Each link shows only its own rows: it replaces the outcome and
-            // flag filters instead of adding to them, which would leave the
-            // table empty (cheapest and easy adjust never meet). The offer
-            // state, the shipping switch and the order are kept.
-            $base  = array_merge(
-                $filters,
-                array(
-                    'outcome'  => '',
-                    'easy'     => false,
-                    'check'    => false,
-                    'unlinked' => false,
-                )
-            );
-            $items = array(
-                array( __( 'Todas', 'pharma-hub-plugin' ), isset( $summary['offers'] ) ? (int) $summary['offers'] : 0, array(), '' ),
-            );
-            foreach ( self::outcome_labels() as $outcome => $label ) {
-                $items[] = array( $label, isset( $summary[ $outcome ] ) ? (int) $summary[ $outcome ] : 0, array( 'outcome' => $outcome ), '' );
-            }
-            $items[] = array( __( 'Ajuste fácil', 'pharma-hub-plugin' ), isset( $summary['easyAdjust'] ) ? (int) $summary['easyAdjust'] : 0, array( 'easy' => true ), 'easy' );
-            $items[] = array( __( 'Diferença suspeita', 'pharma-hub-plugin' ), isset( $summary['checkLink'] ) ? (int) $summary['checkLink'] : 0, array( 'check' => true ), 'check' );
+        <?php
+    }
 
-            $links = array();
-            foreach ( $items as $item ) {
-                list( $label, $count, $override, $badge ) = $item;
+    /**
+     * The hub's counts, as cards that filter the table.
+     *
+     * @param array $report  Report from the hub.
+     * @param array $filters Current filters.
+     * @return void
+     */
+    private static function render_summary( $report, $filters ) {
+        $summary   = isset( $report['summary'] ) ? $report['summary'] : array();
+        $threshold = Pharma_Hub_Format::money( isset( $report['easyAdjustCents'] ) ? (int) $report['easyAdjustCents'] : 10 );
+        $labels    = self::outcome_labels();
+        $count     = function ( $key ) use ( $summary ) {
+            return isset( $summary[ $key ] ) ? (int) $summary[ $key ] : 0;
+        };
+        // Each card shows only its own rows: it replaces the outcome and
+        // flag filters instead of adding to them, which would leave the
+        // table empty (cheapest and easy adjust never meet). The offer
+        // state, the shipping switch and the order are kept.
+        $base = array_merge(
+            $filters,
+            array(
+                'outcome'  => '',
+                'easy'     => false,
+                'check'    => false,
+                'unlinked' => false,
+            )
+        );
+        // Label, count, filter, class. What can be acted on comes first.
+        $cards = array(
+            array( __( 'Todas as ofertas', 'pharma-hub-plugin' ), $count( 'offers' ), array(), '' ),
+            /* translators: %s: amount of money */
+            array( sprintf( __( 'Ajuste fácil (até %s)', 'pharma-hub-plugin' ), $threshold ), $count( 'easyAdjust' ), array( 'easy' => true ), '' ),
+            array( $labels['more_expensive'], $count( 'more_expensive' ), array( 'outcome' => 'more_expensive' ), 'is-up' ),
+            array( $labels['tied'], $count( 'tied' ), array( 'outcome' => 'tied' ), '' ),
+            array( $labels['cheapest'], $count( 'cheapest' ), array( 'outcome' => 'cheapest' ), 'is-down' ),
+            array( $labels['only_store'], $count( 'only_store' ), array( 'outcome' => 'only_store' ), '' ),
+            array( $labels['no_data'], $count( 'no_data' ), array( 'outcome' => 'no_data' ), '' ),
+            array( __( 'Diferença suspeita', 'pharma-hub-plugin' ), $count( 'checkLink' ), array( 'check' => true ), '' ),
+        );
+        ?>
+        <nav class="pharma-hub-cards" aria-label="<?php esc_attr_e( 'Resumo e filtros', 'pharma-hub-plugin' ); ?>">
+            <?php
+            foreach ( $cards as $card ) {
+                list( $label, $number, $override, $class ) = $card;
                 $target  = array_merge( $base, $override );
                 $current = self::query_args( $target ) === self::query_args( $filters );
-                $text    = sprintf( '%s: %d', $label, $count );
-                $links[] = sprintf(
-                    '<a href="%s"%s>%s</a>',
+                printf(
+                    '<a class="%1$s" href="%2$s" aria-current="%3$s"><b>%4$s</b><span>%5$s</span></a>',
+                    esc_attr( trim( 'pharma-hub-card ' . $class . ( $current ? ' current' : '' ) ) ),
                     esc_url( self::url( $target ) ),
-                    $current ? ' class="current" aria-current="page"' : '',
-                    '' === $badge
-                        ? esc_html( $text )
-                        : sprintf( '<span class="pharma-hub-badge %s">%s</span>', esc_attr( $badge ), esc_html( $text ) )
+                    esc_attr( $current ? 'page' : 'false' ),
+                    esc_html( number_format_i18n( $number ) ),
+                    esc_html( $label )
                 );
             }
-            echo implode( ' ', $links ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above.
             ?>
-        </p>
+        </nav>
         <p class="description">
             <?php
             printf(
-                /* translators: 1: easy-adjust threshold, 2: link-check percentage */
-                esc_html__( 'Ajuste fácil: a loja está mais cara por até %1$s. Diferença suspeita: a diferença é de %2$s%% ou mais. Costuma querer dizer que a página do KuantoKusta é de outro produto, variante ou embalagem; confirme antes de mudar o preço.', 'pharma-hub-plugin' ),
-                esc_html( Pharma_Hub_Format::money( isset( $report['easyAdjustCents'] ) ? (int) $report['easyAdjustCents'] : 10 ) ),
+                /* translators: %d: link-check percentage */
+                esc_html__( 'Diferença suspeita: a diferença é de %d%% ou mais. Costuma querer dizer que a página do KuantoKusta é de outro produto, variante ou embalagem; confirme antes de mudar o preço.', 'pharma-hub-plugin' ),
                 (int) ( isset( $report['checkLinkPercent'] ) ? $report['checkLinkPercent'] : 50 )
             );
             ?>
@@ -337,7 +387,7 @@ class Pharma_Hub_Admin_Report {
     }
 
     /**
-     * The filter form and the export button.
+     * The filter form, the order and the export button.
      *
      * @param array $filters Current filters.
      * @param int   $shown   Rows shown with these filters.
@@ -345,44 +395,72 @@ class Pharma_Hub_Admin_Report {
      */
     private static function render_filters( $filters, $shown ) {
         ?>
-        <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin: 12px 0">
-            <input type="hidden" name="page" value="<?php echo esc_attr( Pharma_Hub_Admin::PAGE ); ?>">
-            <input type="hidden" name="tab" value="report">
-            <input type="hidden" name="orderby" value="<?php echo esc_attr( $filters['orderby'] ); ?>">
-            <input type="hidden" name="order" value="<?php echo esc_attr( $filters['order'] ); ?>">
-            <select name="outcome">
-                <option value=""><?php esc_html_e( 'Todas as situações', 'pharma-hub-plugin' ); ?></option>
-                <?php foreach ( self::outcome_labels() as $outcome => $label ) : ?>
-                    <option value="<?php echo esc_attr( $outcome ); ?>" <?php selected( $filters['outcome'], $outcome ); ?>><?php echo esc_html( $label ); ?></option>
+        <div class="pharma-hub-tools">
+            <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+                <input type="hidden" name="page" value="<?php echo esc_attr( Pharma_Hub_Admin::PAGE ); ?>">
+                <input type="hidden" name="tab" value="report">
+                <input type="hidden" name="outcome" value="<?php echo esc_attr( $filters['outcome'] ); ?>">
+                <?php if ( $filters['easy'] ) : ?>
+                    <input type="hidden" name="easy" value="1">
+                <?php endif; ?>
+                <?php if ( $filters['check'] ) : ?>
+                    <input type="hidden" name="check" value="1">
+                <?php endif; ?>
+                <input type="hidden" name="orderby" value="<?php echo esc_attr( $filters['orderby'] ); ?>">
+                <input type="hidden" name="order" value="<?php echo esc_attr( $filters['order'] ); ?>">
+                <label class="screen-reader-text" for="pharma-hub-state"><?php esc_html_e( 'Ofertas a mostrar', 'pharma-hub-plugin' ); ?></label>
+                <select name="state" id="pharma-hub-state">
+                    <option value="active" <?php selected( $filters['state'], 'active' ); ?>><?php esc_html_e( 'Com stock no KuantoKusta', 'pharma-hub-plugin' ); ?></option>
+                    <option value="all" <?php selected( $filters['state'], 'all' ); ?>><?php esc_html_e( 'Incluir sem stock e retiradas', 'pharma-hub-plugin' ); ?></option>
+                </select>
+                <label><input type="checkbox" name="unlinked" value="1" <?php checked( $filters['unlinked'] ); ?>> <?php esc_html_e( 'Só sem vínculo', 'pharma-hub-plugin' ); ?></label>
+                <label><input type="checkbox" name="shipping" value="1" <?php checked( $filters['shipping'] ); ?>> <?php esc_html_e( 'Comparar com portes', 'pharma-hub-plugin' ); ?></label>
+                <button type="submit" class="button"><?php esc_html_e( 'Aplicar', 'pharma-hub-plugin' ); ?></button>
+            </form>
+            <span class="count">
+                <?php
+                /* translators: %d: number of products shown */
+                echo esc_html( sprintf( _n( '%d produto', '%d produtos', $shown, 'pharma-hub-plugin' ), $shown ) );
+                echo ' · ';
+                if ( 'priority' === $filters['orderby'] ) {
+                    esc_html_e( 'ajustes fáceis primeiro, depois da menor para a maior diferença', 'pharma-hub-plugin' );
+                } else {
+                    printf(
+                        '<a href="%s">%s</a>',
+                        esc_url(
+                            self::url(
+                                array_merge(
+                                    $filters,
+                                    array(
+                                        'orderby' => 'priority',
+                                        'order'   => 'asc',
+                                    )
+                                )
+                            )
+                        ),
+                        esc_html__( 'Voltar à ordem recomendada', 'pharma-hub-plugin' )
+                    );
+                }
+                ?>
+            </span>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-left: auto">
+                <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_EXPORT ); ?>">
+                <?php wp_nonce_field( self::ACTION_EXPORT ); ?>
+                <?php foreach ( self::query_args( $filters ) as $key => $value ) : ?>
+                    <input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
                 <?php endforeach; ?>
-            </select>
-            <select name="state">
-                <option value="active" <?php selected( $filters['state'], 'active' ); ?>><?php esc_html_e( 'Com stock no KuantoKusta', 'pharma-hub-plugin' ); ?></option>
-                <option value="all" <?php selected( $filters['state'], 'all' ); ?>><?php esc_html_e( 'Incluir sem stock e retiradas', 'pharma-hub-plugin' ); ?></option>
-            </select>
-            <label><input type="checkbox" name="easy" value="1" <?php checked( $filters['easy'] ); ?>> <?php esc_html_e( 'Só ajuste fácil', 'pharma-hub-plugin' ); ?></label>
-            <label><input type="checkbox" name="check" value="1" <?php checked( $filters['check'] ); ?>> <?php esc_html_e( 'Só diferença suspeita', 'pharma-hub-plugin' ); ?></label>
-            <label><input type="checkbox" name="unlinked" value="1" <?php checked( $filters['unlinked'] ); ?>> <?php esc_html_e( 'Só sem vínculo', 'pharma-hub-plugin' ); ?></label>
-            <label><input type="checkbox" name="shipping" value="1" <?php checked( $filters['shipping'] ); ?>> <?php esc_html_e( 'Comparar com portes', 'pharma-hub-plugin' ); ?></label>
-            <button type="submit" class="button"><?php esc_html_e( 'Filtrar', 'pharma-hub-plugin' ); ?></button>
-            <?php
-            /* translators: %d: number of products shown */
-            printf( ' <span>%s</span>', esc_html( sprintf( _n( '%d produto', '%d produtos', $shown, 'pharma-hub-plugin' ), $shown ) ) );
-            ?>
-        </form>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin: 0 0 12px">
-            <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_EXPORT ); ?>">
-            <?php wp_nonce_field( self::ACTION_EXPORT ); ?>
-            <?php foreach ( self::query_args( $filters ) as $key => $value ) : ?>
-                <input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
-            <?php endforeach; ?>
-            <button type="submit" class="button"><?php esc_html_e( 'Transferir CSV', 'pharma-hub-plugin' ); ?></button>
-        </form>
+                <button type="submit" class="button"><?php esc_html_e( 'Transferir CSV', 'pharma-hub-plugin' ); ?></button>
+            </form>
+        </div>
         <?php
     }
 
     /**
      * The table.
+     *
+     * Six columns: the lowest price carries its store under it, and the
+     * difference carries the percentage, so the eye goes to the difference,
+     * which is what decides an action.
      *
      * @param array[] $rows     Rows to show.
      * @param array   $links    Resolved links by offer id.
@@ -399,80 +477,116 @@ class Pharma_Hub_Admin_Report {
             : __( 'Preço da loja', 'pharma-hub-plugin' );
         $labels   = self::outcome_labels();
         ?>
-        <table class="widefat striped pharma-hub-report">
+        <div class="pharma-hub-scroll">
+        <table class="pharma-hub-report">
             <thead>
                 <tr>
                     <th scope="col"><?php self::sort_link( __( 'Produto', 'pharma-hub-plugin' ), 'name', $filters ); ?></th>
                     <th scope="col" class="num"><?php self::sort_link( $shipping ? $price . ' ' . __( 'com portes', 'pharma-hub-plugin' ) : $price, 'store_price', $filters ); ?></th>
                     <th scope="col" class="num"><?php echo esc_html( $shipping ? __( 'Menor total com portes', 'pharma-hub-plugin' ) : __( 'Menor preço', 'pharma-hub-plugin' ) ); ?></th>
-                    <th scope="col"><?php esc_html_e( 'Loja mais barata', 'pharma-hub-plugin' ); ?></th>
                     <th scope="col" class="num"><?php self::sort_link( __( 'Diferença', 'pharma-hub-plugin' ), 'difference', $filters ); ?></th>
                     <?php if ( ! $shipping ) : ?>
-                        <th scope="col" class="num"><?php self::sort_link( __( 'Dif. %', 'pharma-hub-plugin' ), 'percent', $filters ); ?></th>
-                        <th scope="col" class="num"><?php esc_html_e( 'Posição', 'pharma-hub-plugin' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Posição', 'pharma-hub-plugin' ); ?></th>
                     <?php endif; ?>
                     <th scope="col"><?php esc_html_e( 'Situação', 'pharma-hub-plugin' ); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ( ! $rows ) : ?>
-                    <tr><td colspan="8"><?php esc_html_e( 'Nenhum produto com estes filtros.', 'pharma-hub-plugin' ); ?></td></tr>
+                    <tr><td colspan="6"><?php esc_html_e( 'Nenhum produto com estes filtros.', 'pharma-hub-plugin' ); ?></td></tr>
                 <?php endif; ?>
                 <?php
                 foreach ( $rows as $row ) :
-                    $id      = (string) $row['offerId'];
-                    $product = isset( $products[ $id ] ) ? $products[ $id ] : null;
-                    $class   = ! empty( $row['checkLink'] ) ? 'is-check' : ( ! empty( $row['easyAdjust'] ) ? 'is-easy' : '' );
+                    $id         = (string) $row['offerId'];
+                    $product    = isset( $products[ $id ] ) ? $products[ $id ] : null;
+                    $class      = ! empty( $row['checkLink'] ) ? 'is-check' : ( ! empty( $row['easyAdjust'] ) ? 'is-easy' : '' );
+                    $own        = $shipping ? $row['storeTotalCents'] : $row['storePriceCents'];
+                    $lowest     = $shipping ? $row['lowestTotalCents'] : $row['lowestPriceCents'];
+                    $lowest_by  = (string) ( $shipping ? $row['lowestTotalStoreName'] : $row['lowestStoreName'] );
+                    $difference = $shipping ? $row['totalDifferenceCents'] : $row['differenceCents'];
+                    $direction  = null === $difference || 0 === $difference ? '' : ( $difference > 0 ? 'is-up' : 'is-down' );
+                    $suggestion = $shipping ? null : Pharma_Hub_Report::price_to_be_cheapest( $row );
+                    $marker     = Pharma_Hub_Report::position_percent( $row['storePosition'], $row['storeCount'] );
                     ?>
                     <tr class="<?php echo esc_attr( $class ); ?>">
                         <td>
                             <?php if ( $product ) : ?>
-                                <a href="<?php echo esc_url( get_edit_post_link( $product->get_parent_id() ? $product->get_parent_id() : $product->get_id() ) ); ?>"><strong><?php echo esc_html( wp_strip_all_tags( $product->get_formatted_name() ) ); ?></strong></a>
+                                <a class="name" href="<?php echo esc_url( get_edit_post_link( $product->get_parent_id() ? $product->get_parent_id() : $product->get_id() ) ); ?>"><?php echo esc_html( wp_strip_all_tags( $product->get_name() ) ); ?></a>
                             <?php else : ?>
-                                <strong><?php echo esc_html( $row['name'] ); ?></strong>
-                                <span class="pharma-hub-badge unlinked"><?php esc_html_e( 'sem vínculo', 'pharma-hub-plugin' ); ?></span>
+                                <span class="name"><?php echo esc_html( $row['name'] ); ?></span>
+                                <span class="pharma-hub-pill"><?php esc_html_e( 'sem vínculo', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
-                            <br><small>
-                                <?php echo esc_html( $row['sku'] ? sprintf( /* translators: %s: SKU */ __( 'REF %s', 'pharma-hub-plugin' ), $row['sku'] ) : '' ); ?>
+                            <span class="sub">
+                                <?php
+                                if ( $row['sku'] ) {
+                                    /* translators: %s: SKU */
+                                    echo esc_html( sprintf( __( 'REF %s', 'pharma-hub-plugin' ), $row['sku'] ) ) . ' · ';
+                                }
+                                ?>
                                 <a href="<?php echo esc_url( $row['productUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'ver no KuantoKusta', 'pharma-hub-plugin' ); ?></a>
-                            </small>
+                            </span>
                         </td>
-                        <?php if ( $shipping ) : ?>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::money( $row['storeTotalCents'] ) ); ?></td>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::money( $row['lowestTotalCents'] ) ); ?></td>
-                            <td><?php echo esc_html( (string) $row['lowestTotalStoreName'] ); ?></td>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::money( $row['totalDifferenceCents'], true ) ); ?></td>
-                        <?php else : ?>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::money( $row['storePriceCents'] ) ); ?></td>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::money( $row['lowestPriceCents'] ) ); ?></td>
-                            <td><?php echo esc_html( (string) $row['lowestStoreName'] ); ?></td>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::money( $row['differenceCents'], true ) ); ?></td>
-                            <td class="num"><?php echo esc_html( Pharma_Hub_Format::percent( $row['differencePercent'] ) ); ?></td>
-                            <td class="num">
+                        <td class="num main"><?php echo esc_html( Pharma_Hub_Format::money( $own ) ); ?></td>
+                        <td class="num">
+                            <?php if ( null !== $lowest ) : ?>
+                                <span class="main"><?php echo esc_html( Pharma_Hub_Format::money( $lowest ) ); ?></span>
+                                <span class="sub"><?php echo esc_html( $lowest_by ); ?></span>
+                            <?php elseif ( 'only_store' === $row['outcome'] ) : ?>
+                                <span class="none"><?php esc_html_e( 'sem outras lojas', 'pharma-hub-plugin' ); ?></span>
+                            <?php else : ?>
+                                <span class="none">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="num">
+                            <?php if ( null !== $difference ) : ?>
+                                <span class="diff <?php echo esc_attr( $direction ); ?>"><?php echo esc_html( Pharma_Hub_Format::money( $difference, true ) ); ?></span>
+                                <?php if ( ! $shipping && null !== $row['differencePercent'] ) : ?>
+                                    <span class="sub"><?php echo esc_html( Pharma_Hub_Format::percent( $row['differencePercent'] ) ); ?></span>
+                                <?php endif; ?>
+                            <?php else : ?>
+                                <span class="none">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <?php if ( ! $shipping ) : ?>
+                            <td>
                                 <?php
                                 if ( null !== $row['storePosition'] ) {
                                     /* translators: 1: position, 2: number of stores */
                                     echo esc_html( sprintf( __( '%1$d.º de %2$d', 'pharma-hub-plugin' ), $row['storePosition'], $row['storeCount'] ) );
                                 }
                                 ?>
+                                <?php if ( null !== $marker ) : ?>
+                                    <?php // Whole numbers only: the marker is 8px wide and must stay inside the track. ?>
+                                    <div class="pharma-hub-track" aria-hidden="true"><i style="left: calc(<?php echo (int) $marker; ?>% - <?php echo (int) round( 8 * $marker / 100 ); ?>px)"></i></div>
+                                <?php endif; ?>
                             </td>
                         <?php endif; ?>
                         <td>
-                            <?php echo esc_html( isset( $labels[ $row['outcome'] ] ) ? $labels[ $row['outcome'] ] : $row['outcome'] ); ?>
                             <?php if ( ! empty( $row['easyAdjust'] ) ) : ?>
-                                <br><span class="pharma-hub-badge easy"><?php esc_html_e( 'Ajuste fácil', 'pharma-hub-plugin' ); ?></span>
+                                <span class="pharma-hub-pill easy"><?php esc_html_e( 'Ajuste fácil', 'pharma-hub-plugin' ); ?></span>
+                            <?php else : ?>
+                                <span class="pharma-hub-pill <?php echo esc_attr( $row['outcome'] ); ?>"><?php echo esc_html( isset( $labels[ $row['outcome'] ] ) ? $labels[ $row['outcome'] ] : $row['outcome'] ); ?></span>
                             <?php endif; ?>
                             <?php if ( ! empty( $row['checkLink'] ) ) : ?>
-                                <br><span class="pharma-hub-badge check"><?php esc_html_e( 'Diferença suspeita', 'pharma-hub-plugin' ); ?></span>
+                                <span class="pharma-hub-pill check"><?php esc_html_e( 'Diferença suspeita', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
                             <?php if ( ! empty( $row['stale'] ) ) : ?>
-                                <br><span class="pharma-hub-badge stale" title="<?php echo esc_attr( Pharma_Hub_Format::time( $row['comparedAt'] ) ); ?>"><?php esc_html_e( 'coleta anterior', 'pharma-hub-plugin' ); ?></span>
+                                <span class="pharma-hub-pill" title="<?php echo esc_attr( Pharma_Hub_Format::time( $row['comparedAt'] ) ); ?>"><?php esc_html_e( 'coleta anterior', 'pharma-hub-plugin' ); ?></span>
+                            <?php endif; ?>
+                            <?php if ( null !== $suggestion ) : ?>
+                                <span class="sub">
+                                    <?php
+                                    /* translators: %s: amount of money */
+                                    echo esc_html( sprintf( __( '%s para ser a mais barata', 'pharma-hub-plugin' ), Pharma_Hub_Format::money( $suggestion ) ) );
+                                    ?>
+                                </span>
                             <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
         <?php
     }
 
@@ -525,7 +639,7 @@ class Pharma_Hub_Admin_Report {
                 $args[ $flag ] = '1';
             }
         }
-        if ( 'name' !== $filters['orderby'] || 'asc' !== $filters['order'] ) {
+        if ( 'priority' !== $filters['orderby'] ) {
             $args['orderby'] = $filters['orderby'];
             $args['order']   = $filters['order'];
         }

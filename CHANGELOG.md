@@ -6,6 +6,34 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-09
+
+### Changed
+
+- The report screen was redrawn so the eye goes to what can be acted on:
+  - six columns instead of eight: the lowest price carries its store under
+    it, and the difference carries the percentage;
+  - the difference is the strongest number of the row, coloured and signed
+    (dearer or cheaper);
+  - the outcome is a coloured pill, and "Ajuste fácil" takes the place of
+    "Mais cara" on the rows it applies to;
+  - the default order is no longer alphabetical: easy adjusts first, then
+    from the smallest to the largest difference. A column title still sorts,
+    and "Voltar à ordem recomendada" brings the default back;
+  - the summary is a row of cards that filter the table, replacing the
+    outcome list and the "só ajuste fácil" / "só diferença suspeita" boxes;
+  - a small marker shows where the store stands among the stores of the page;
+  - the product's name no longer repeats the REF shown under it;
+  - an offer that only the store sells says "sem outras lojas" instead of
+    leaving cells empty;
+  - no zebra stripes; the table scrolls sideways on a narrow screen.
+
+### Added
+
+- On an easy adjust, the price that would make the store the cheapest (one
+  cent under the lowest price of the others), as a hint. The plugin knows
+  nothing about cost or margin; the decision stays with the store.
+
 ## [0.5.0] - 2026-10-09
 
 ### Added

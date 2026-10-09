@@ -104,30 +104,45 @@ The first tab of *WooCommerce → ZincoGroup Hub*, before *Vínculos* and *Defin
 - **Data:** every page of `GET /v1/plugin/kuantokusta/report` (200 rows a page; about
   185 for Zincomed), kept for 5 minutes per offer state. "Atualizar" reads the hub
   again. The report's offers are linked on the way, as in *Vínculos*.
-- **Header:** when the last collection ended (Portugal time) and how; a warning with
-  the number of `stale` rows; the hub's summary by outcome, easy adjust and
-  "Diferença suspeita", each a link that shows only those rows (it replaces the
-  outcome and flag filters rather than adding to them; "Todas" clears them; the
-  active one is highlighted), with the thresholds in words.
+- **Header:** when the last collection ended (Portugal time) and how, and a warning
+  with the number of `stale` rows.
+- **Summary cards (redrawn in 0.6.0):** the hub's counts as a row of cards, each a link
+  that shows only its rows (it replaces the outcome and flag filters rather than adding
+  to them; "Todas as ofertas" clears them; the active one is filled). The easy-adjust
+  card carries the threshold. Order: what can be acted on first.
 - **"Diferença suspeita"** (renamed from "Conferir vínculo" in 0.4.0): the difference
   is 50% or more either way. It is shown under that name because the cause is usually
   the KuantoKusta page (another product, variant or pack size), not the link to the
   WooCommerce product. When KuantoKusta moves an offer to the right page the offer keeps
   its reference, so the hub keeps the same offer id and the plugin's link stays.
-- **Table:**
-  - product (the linked WooCommerce product, or the offer's name with "sem vínculo");
-  - REF and a link to the KuantoKusta page;
-  - the store's price, the lowest price and its store;
-  - the difference in euros and percent, the position;
-  - the outcome, with badges for easy adjust (green row), "Diferença suspeita" (orange
-    row, the hub's `checkLink`) and "coleta anterior" (stale).
+- **Table (redrawn in 0.6.0), six columns:**
+  - product: the linked WooCommerce product's name (without the SKU, which is on the
+    line under it as REF), or the offer's name with "sem vínculo"; a link to the
+    KuantoKusta page;
+  - the store's price;
+  - the lowest price, with its store under it; "sem outras lojas" when the store is
+    the only one;
+  - the difference, the strongest number of the row, signed and coloured (dearer or
+    cheaper), with the percentage under it;
+  - the position ("30.º de 44") with a marker on a short track, from the cheapest on
+    the left to the dearest on the right;
+  - the outcome as a pill. "Ajuste fácil" replaces "Mais cara" where it applies; more
+    pills for "Diferença suspeita" and "coleta anterior" (stale). An easy-adjust row is
+    tinted blue, a "Diferença suspeita" row yellow.
+  - No meaning rests on colour alone: differences keep their sign and each pill says
+    what it is. Text colours have a contrast of at least 4.5:1.
+- **Price to be the cheapest (0.6.0):** on an easy adjust, the lowest price of the
+  others minus one cent, as a hint. It is arithmetic on two numbers the hub sent, not a
+  comparison: the plugin still computes none. It says nothing about cost or margin.
 - **Filters (query string, so a view can be bookmarked):**
-  - outcome;
+  - outcome, only easy adjust, only "Diferença suspeita": through the cards;
   - offer state (active, or including out of stock and delisted);
-  - only easy adjust, only "Diferença suspeita", only without a link;
+  - only without a link;
   - "Comparar com portes".
-- **Sorting:** by product, the store's price, the difference or the percentage. Rows
-  without a value always go last.
+- **Sorting:** the default (0.6.0) puts what can be acted on first: easy adjusts, then
+  dearer, tied, cheapest, only store, no data; inside each group the smallest gap
+  first. A column title sorts by product, the store's price or the difference, and a
+  link brings the default back. Rows without a value always go last.
 - **With shipping:** the table shows the totals the hub stored (`storeTotalCents`,
   `lowestTotalCents`, `totalDifferenceCents`) and hides the percentage and position,
   which the hub computes only without shipping. The plugin computes nothing. Which
