@@ -217,7 +217,8 @@ class Pharma_Hub_Admin_Report {
             .pharma-hub-badge.easy { background: #00a32a; color: #fff; }
             .pharma-hub-badge.check { background: #dba617; color: #1d2327; }
             .pharma-hub-badge.stale, .pharma-hub-badge.unlinked { background: #dcdcde; color: #1d2327; }
-            .pharma-hub-summary a { margin-right: 12px; }
+            .pharma-hub-summary a { margin-right: 12px; text-decoration: none; }
+            .pharma-hub-summary a.current { font-weight: 600; color: #1d2327; border-bottom: 2px solid #2271b1; }
         </style>
         <?php
     }
@@ -261,31 +262,45 @@ class Pharma_Hub_Admin_Report {
         <?php endif; ?>
         <p class="pharma-hub-summary">
             <?php
-            printf(
-                /* translators: %d: number of offers */
-                esc_html__( '%d ofertas:', 'pharma-hub-plugin' ) . ' ',
-                isset( $summary['offers'] ) ? (int) $summary['offers'] : 0
+            echo esc_html__( 'Mostrar:', 'pharma-hub-plugin' ) . ' ';
+            // Each link shows only its own rows: it replaces the outcome and
+            // flag filters instead of adding to them, which would leave the
+            // table empty (cheapest and easy adjust never meet). The offer
+            // state, the shipping switch and the order are kept.
+            $base  = array_merge(
+                $filters,
+                array(
+                    'outcome'  => '',
+                    'easy'     => false,
+                    'check'    => false,
+                    'unlinked' => false,
+                )
+            );
+            $items = array(
+                array( __( 'Todas', 'pharma-hub-plugin' ), isset( $summary['offers'] ) ? (int) $summary['offers'] : 0, array(), '' ),
             );
             foreach ( self::outcome_labels() as $outcome => $label ) {
-                printf(
-                    '<a href="%s">%s: %d</a>',
-                    esc_url( self::url( array_merge( $filters, array( 'outcome' => $outcome ) ) ) ),
-                    esc_html( $label ),
-                    isset( $summary[ $outcome ] ) ? (int) $summary[ $outcome ] : 0
+                $items[] = array( $label, isset( $summary[ $outcome ] ) ? (int) $summary[ $outcome ] : 0, array( 'outcome' => $outcome ), '' );
+            }
+            $items[] = array( __( 'Ajuste fácil', 'pharma-hub-plugin' ), isset( $summary['easyAdjust'] ) ? (int) $summary['easyAdjust'] : 0, array( 'easy' => true ), 'easy' );
+            $items[] = array( __( 'Diferença suspeita', 'pharma-hub-plugin' ), isset( $summary['checkLink'] ) ? (int) $summary['checkLink'] : 0, array( 'check' => true ), 'check' );
+
+            $links = array();
+            foreach ( $items as $item ) {
+                list( $label, $count, $override, $badge ) = $item;
+                $target  = array_merge( $base, $override );
+                $current = self::query_args( $target ) === self::query_args( $filters );
+                $text    = sprintf( '%s: %d', $label, $count );
+                $links[] = sprintf(
+                    '<a href="%s"%s>%s</a>',
+                    esc_url( self::url( $target ) ),
+                    $current ? ' class="current" aria-current="page"' : '',
+                    '' === $badge
+                        ? esc_html( $text )
+                        : sprintf( '<span class="pharma-hub-badge %s">%s</span>', esc_attr( $badge ), esc_html( $text ) )
                 );
             }
-            printf(
-                '<a href="%s"><span class="pharma-hub-badge easy">%s: %d</span></a>',
-                esc_url( self::url( array_merge( $filters, array( 'easy' => true ) ) ) ),
-                esc_html__( 'Ajuste fácil', 'pharma-hub-plugin' ),
-                isset( $summary['easyAdjust'] ) ? (int) $summary['easyAdjust'] : 0
-            );
-            printf(
-                '<a href="%s"><span class="pharma-hub-badge check">%s: %d</span></a>',
-                esc_url( self::url( array_merge( $filters, array( 'check' => true ) ) ) ),
-                esc_html__( 'Diferença suspeita', 'pharma-hub-plugin' ),
-                isset( $summary['checkLink'] ) ? (int) $summary['checkLink'] : 0
-            );
+            echo implode( ' ', $links ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above.
             ?>
         </p>
         <p class="description">
