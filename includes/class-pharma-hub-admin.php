@@ -32,6 +32,7 @@ class Pharma_Hub_Admin {
         add_action( 'admin_menu', array( __CLASS__, 'add_menu' ), 60 );
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ), 20 );
         Pharma_Hub_Admin_Links::register();
+        Pharma_Hub_Admin_Report::register();
         add_action( 'admin_post_' . self::ACTION_SAVE_CONNECTION, array( __CLASS__, 'handle_save_connection' ) );
         add_action( 'admin_post_' . self::ACTION_SEND_KK_KEY, array( __CLASS__, 'handle_send_kk_key' ) );
     }
@@ -74,6 +75,7 @@ class Pharma_Hub_Admin {
      */
     private static function tabs() {
         return array(
+            'report'   => __( 'Relatório', 'pharma-hub-plugin' ),
             'links'    => __( 'Vínculos', 'pharma-hub-plugin' ),
             'settings' => __( 'Definições', 'pharma-hub-plugin' ),
         );
@@ -86,7 +88,7 @@ class Pharma_Hub_Admin {
      */
     private static function current_tab() {
         $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
-        return array_key_exists( $tab, self::tabs() ) ? $tab : 'links';
+        return array_key_exists( $tab, self::tabs() ) ? $tab : 'report';
     }
 
     /**
@@ -131,8 +133,10 @@ class Pharma_Hub_Admin {
             self::render_notices();
             if ( 'settings' === $current ) {
                 self::render_settings_tab();
-            } else {
+            } elseif ( 'links' === $current ) {
                 Pharma_Hub_Admin_Links::render();
+            } else {
+                Pharma_Hub_Admin_Report::render();
             }
             ?>
         </div>

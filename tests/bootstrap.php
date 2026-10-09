@@ -66,4 +66,6 @@ require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-error.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-client.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-settings.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-linker.php';
+require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-format.php';
+require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-report.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-admin.php';

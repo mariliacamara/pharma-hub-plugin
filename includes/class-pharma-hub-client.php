@@ -133,6 +133,44 @@ class Pharma_Hub_Client {
     }
 
     /**
+     * The price report: the latest comparison of each offer, every page.
+     *
+     * The first page carries the collection, the thresholds and the summary;
+     * the rows of the following pages are added to it.
+     *
+     * @param string $state active (listed and in stock) or all.
+     * @return array run, easyAdjustCents, checkLinkPercent, summary and rows.
+     * @throws Pharma_Hub_Error When the hub refuses or cannot be reached.
+     */
+    public function get_report( $state = 'active' ) {
+        $report = null;
+        $after  = null;
+        for ( $page = 0; $page < 100; $page++ ) {
+            $query = array(
+                'limit' => 200,
+                'state' => $state,
+            );
+            if ( null !== $after ) {
+                $query['after'] = $after;
+            }
+            $answer = $this->request( 'GET', '/v1/plugin/kuantokusta/report', $query );
+            $rows   = isset( $answer['rows'] ) && is_array( $answer['rows'] ) ? $answer['rows'] : array();
+            if ( null === $report ) {
+                $report         = $answer;
+                $report['rows'] = $rows;
+            } else {
+                $report['rows'] = array_merge( $report['rows'], $rows );
+            }
+            $after = isset( $answer['nextCursor'] ) && is_string( $answer['nextCursor'] ) ? $answer['nextCursor'] : null;
+            if ( null === $after ) {
+                unset( $report['nextCursor'] );
+                return $report;
+            }
+        }
+        throw new Pharma_Hub_Error( 'plugin_too_many_pages', 'The hub kept returning pages of the report' );
+    }
+
+    /**
      * Calls the hub.
      *
      * @param string     $method HTTP method.
