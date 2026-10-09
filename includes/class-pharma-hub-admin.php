@@ -65,7 +65,7 @@ class Pharma_Hub_Admin {
     public static function add_menu() {
         $brand = Pharma_Hub_Settings::brand_name();
         // Right after WooCommerce's own entries.
-        add_menu_page( $brand, $brand, self::CAPABILITY, self::PAGE, array( __CLASS__, 'render_page' ), 'dashicons-chart-bar', 57 );
+        add_menu_page( $brand, $brand, self::CAPABILITY, self::PAGE, array( __CLASS__, 'render_page' ), 'dashicons-chart-bar', 40 );
         // The same slug as the menu: this entry replaces the one WordPress
         // would otherwise repeat under the menu's own name.
         add_submenu_page( self::PAGE, 'KuantoKusta', 'KuantoKusta', self::CAPABILITY, self::PAGE, array( __CLASS__, 'render_page' ) );
