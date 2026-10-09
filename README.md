@@ -64,7 +64,7 @@ The tests load the plugin's classes with a handful of stubbed WordPress function
 
 Commit messages follow Conventional Commits (`commitlint.config.js`). CI runs the lint,
 `php -l` on PHP 7.4 and 8.3, PHPUnit on both, and commitlint on every commit of a pull
-request. Merging a version bump into `main` creates the tag, the release and the zip
+request. Merging a version bump into `production` creates the tag, the release and the zip
 (`.github/workflows/release.yml`).
 
 ## Layout

@@ -51,7 +51,7 @@ GitHub Actions (`.github/workflows/ci.yml`).
 
 ## Workflow
 
-- Work on a branch and open a pull request. Never push or merge to `main`.
+- Work on a branch and open a pull request. The base branch is `production`; never push or merge to it.
 - Every decision of note goes into `docs/design.md` in the same change.
 
 ## Releases

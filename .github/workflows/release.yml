@@ -1,15 +1,15 @@
 name: Release
 
 # Creates the vX.Y.Z tag and GitHub release, with the CHANGELOG.md notes and
-# the installable plugin zip, whenever main carries a version that has no
+# the installable plugin zip, whenever production carries a version that has no
 # tag yet. Pushes that do not change the version do nothing.
 on:
   push:
-    branches: [main]
+    branches: [production]
   workflow_dispatch:
     inputs:
       sha:
-        description: Commit to release (full or short SHA); empty releases the latest main
+        description: Commit to release (full or short SHA); empty releases the latest production
         required: false
         default: ''
 
@@ -40,8 +40,8 @@ jobs:
             exit 1
           fi
           sha="$(git rev-parse --verify "${sha}^{commit}")"
-          if ! git merge-base --is-ancestor "$sha" origin/main; then
-            echo "::error::$sha is not on main."
+          if ! git merge-base --is-ancestor "$sha" origin/production; then
+            echo "::error::$sha is not on production."
             exit 1
           fi
           version="$(.github/scripts/release-meta.sh "$sha" notes.md)"
