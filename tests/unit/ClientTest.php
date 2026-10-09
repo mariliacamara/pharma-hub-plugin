@@ -85,6 +85,35 @@ final class ClientTest extends TestCase {
         $this->assertSame( 'https://hub.example.com/v1/plugin/kuantokusta/report?limit=200&after=12&outcome=more%20expensive', $this->sent[0][0] );
     }
 
+    public function test_reads_every_page_of_the_report() {
+        $pages = array(
+            self::answer( 200, array( 'run' => array( 'id' => 'r1' ), 'summary' => array( 'offers' => 3 ), 'rows' => array( array( 'offerId' => '1' ), array( 'offerId' => '2' ) ), 'nextCursor' => '2' ) ),
+            self::answer( 200, array( 'run' => array( 'id' => 'r1' ), 'summary' => array( 'offers' => 3 ), 'rows' => array( array( 'offerId' => '5' ) ), 'nextCursor' => null ) ),
+        );
+        $urls   = array();
+        $client = new Pharma_Hub_Client(
+            'https://hub.example.com',
+            self::TOKEN,
+            function ( $url ) use ( &$pages, &$urls ) {
+                $urls[] = $url;
+                return array_shift( $pages );
+            }
+        );
+
+        $report = $client->get_report( 'all' );
+
+        $this->assertSame( array( '1', '2', '5' ), array_column( $report['rows'], 'offerId' ) );
+        $this->assertSame( array( 'offers' => 3 ), $report['summary'] );
+        $this->assertArrayNotHasKey( 'nextCursor', $report );
+        $this->assertSame(
+            array(
+                'https://hub.example.com/v1/plugin/kuantokusta/report?limit=200&state=all',
+                'https://hub.example.com/v1/plugin/kuantokusta/report?limit=200&state=all&after=2',
+            ),
+            $urls
+        );
+    }
+
     public function test_reports_the_hubs_error_code_retry_after_and_request_id() {
         $client = $this->client_answering(
             self::answer(
