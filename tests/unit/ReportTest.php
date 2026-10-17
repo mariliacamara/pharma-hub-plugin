@@ -47,6 +47,7 @@ final class ReportTest extends TestCase {
                 'check'    => false,
                 'unlinked' => false,
                 'shipping' => false,
+                'search'   => '',
                 'orderby'  => 'priority',
                 'order'    => 'asc',
             ),
@@ -55,6 +56,52 @@ final class ReportTest extends TestCase {
 
         $filters = Pharma_Hub_Report::filters_from( array( 'state' => 'all', 'outcome' => 'tied', 'easy' => '1', 'shipping' => '1', 'orderby' => 'percent', 'order' => 'desc' ) );
         $this->assertSame( array( 'all', 'tied', true, true, 'percent', 'desc' ), array( $filters['state'], $filters['outcome'], $filters['easy'], $filters['shipping'], $filters['orderby'], $filters['order'] ) );
+    }
+
+    public function test_cleans_the_search_text() {
+        $this->assertSame( 'allevyn 6129684', Pharma_Hub_Report::filters_from( array( 's' => "  allevyn \t\n 6129684 " ) )['search'] );
+        $this->assertSame( 'Supradyn', Pharma_Hub_Report::filters_from( array( 's' => '<b>Supradyn</b>' ) )['search'] );
+        $this->assertSame( '', Pharma_Hub_Report::filters_from( array( 's' => array( 'x' ) ) )['search'] );
+        $this->assertSame( 100, mb_strlen( Pharma_Hub_Report::clean_search( str_repeat( 'ã', 150 ) ), 'UTF-8' ) );
+    }
+
+    public function test_searchable_holds_the_offer_the_product_and_its_brands() {
+        $this->assertSame(
+            array( 'molicare premium', 'mc-12', '4052199', 'molicare premium elastic 7 gotas', 'zm-12', 'hartmann', 'protecao' ),
+            Pharma_Hub_Report::searchable(
+                array( 'name' => 'MoliCare Premium', 'sku' => 'MC-12', 'ean' => '4052199' ),
+                array( 'name' => 'MoliCare Premium Elastic 7 gotas', 'sku' => 'ZM-12' ),
+                array( 'Hartmann', 'Proteção' )
+            )
+        );
+        $this->assertSame( array( 'zinco' ), Pharma_Hub_Report::searchable( array( 'name' => 'Zinco', 'sku' => null, 'ean' => '' ) ) );
+    }
+
+    public function test_searches_by_product_and_brand() {
+        $texts  = array(
+            '1' => Pharma_Hub_Report::searchable( array( 'name' => 'Supradyn Energy' ), array( 'name' => 'Supradyn Energy 30 comp.', 'sku' => '6129684' ), array( 'Bayer' ) ),
+            '2' => Pharma_Hub_Report::searchable( array( 'name' => 'Molicare' ), array(), array() ),
+            '4' => Pharma_Hub_Report::searchable( array( 'name' => 'Zinco' ), array( 'name' => 'Zinco Pomada', 'sku' => 'Z1' ), array( 'Avène Laboratórios' ) ),
+        );
+        $search = function ( $term ) use ( $texts ) {
+            return self::ids( Pharma_Hub_Report::filter( self::rows(), Pharma_Hub_Report::filters_from( array( 's' => $term ) ), array(), $texts ) );
+        };
+
+        $this->assertSame( array( '1', '2', '3', '4' ), $search( '' ) );
+        $this->assertSame( array( '1' ), $search( 'bayer' ) );
+        $this->assertSame( array( '1' ), $search( 'BAYER supradyn' ) );
+        $this->assertSame( array( '1' ), $search( '6129684' ) );
+        $this->assertSame( array( '4' ), $search( 'avene' ) );
+        $this->assertSame( array( '4' ), $search( 'Laboratórios pomada' ) );
+        $this->assertSame( array(), $search( 'bayer zinco' ) );
+        // Row 3 has no texts given: its own name is searched.
+        $this->assertSame( array( '3' ), $search( 'antes' ) );
+    }
+
+    public function test_search_adds_to_the_other_filters() {
+        $texts = array( '1' => array( 'supradyn', 'bayer' ), '4' => array( 'zinco', 'bayer' ) );
+        $rows  = Pharma_Hub_Report::filter( self::rows(), Pharma_Hub_Report::filters_from( array( 's' => 'bayer', 'easy' => '1' ) ), array(), $texts );
+        $this->assertSame( array( '1' ), self::ids( $rows ) );
     }
 
     public function test_filters_by_outcome_and_flags() {

@@ -38,6 +38,7 @@ class Pharma_Hub_Admin {
     const ACTION_SEND_KK_KEY     = 'pharma_hub_send_kk_key';
     const ACTION_SAVE_EASY       = 'pharma_hub_save_easy_adjust';
     const ACTION_SAVE_EAN        = 'pharma_hub_save_ean';
+    const ACTION_SAVE_BRAND      = 'pharma_hub_save_brand';
 
     /**
      * Hooks the admin screens.
@@ -55,6 +56,7 @@ class Pharma_Hub_Admin {
         add_action( 'admin_post_' . self::ACTION_SEND_KK_KEY, array( __CLASS__, 'handle_send_kk_key' ) );
         add_action( 'admin_post_' . self::ACTION_SAVE_EASY, array( __CLASS__, 'handle_save_easy_adjust' ) );
         add_action( 'admin_post_' . self::ACTION_SAVE_EAN, array( __CLASS__, 'handle_save_ean' ) );
+        add_action( 'admin_post_' . self::ACTION_SAVE_BRAND, array( __CLASS__, 'handle_save_brand' ) );
     }
 
     /**
@@ -253,6 +255,22 @@ class Pharma_Hub_Admin {
             self::redirect_back( array( array( 'error', __( 'O nome do campo do EAN só pode ter letras, números, _ e -. Nada foi alterado.', 'pharma-hub-plugin' ) ) ) );
         }
         self::redirect_back( array( array( 'success', __( 'Campo do EAN guardado.', 'pharma-hub-plugin' ) ) ) );
+    }
+
+    /**
+     * Saves the product attribute that holds the brand.
+     *
+     * @return void
+     */
+    public static function handle_save_brand() {
+        self::check_capability();
+        check_admin_referer( self::ACTION_SAVE_BRAND );
+
+        $taxonomy = isset( $_POST['pharma_hub_brand_attribute'] ) ? sanitize_key( wp_unslash( $_POST['pharma_hub_brand_attribute'] ) ) : '';
+        if ( ! Pharma_Hub_Settings::save_brand_attribute( $taxonomy, wc_get_attribute_taxonomy_names() ) ) {
+            self::redirect_back( array( array( 'error', __( 'Esse atributo não existe na loja. Nada foi alterado.', 'pharma-hub-plugin' ) ) ) );
+        }
+        self::redirect_back( array( array( 'success', __( 'Atributo da marca guardado.', 'pharma-hub-plugin' ) ) ) );
     }
 
     /**
@@ -586,6 +604,34 @@ class Pharma_Hub_Admin {
                     </div>
                     <button type="submit" class="button"><?php esc_html_e( 'Guardar campo', 'pharma-hub-plugin' ); ?></button>
                 </form>
+            </section>
+
+            <section class="pharma-hub-panel">
+                <h2><?php esc_html_e( 'Marca dos produtos', 'pharma-hub-plugin' ); ?></h2>
+                <p><?php esc_html_e( 'O atributo de produto com a marca. A marca aparece no Relatório, ao lado da REF, e entra na pesquisa e no ficheiro CSV.', 'pharma-hub-plugin' ); ?></p>
+                <?php
+                $attributes = wc_get_attribute_taxonomies();
+                $brand      = Pharma_Hub_Settings::brand_attribute();
+                ?>
+                <?php if ( ! $attributes ) : ?>
+                    <p class="description"><?php esc_html_e( 'A loja ainda não tem atributos de produto (Produtos → Atributos).', 'pharma-hub-plugin' ); ?></p>
+                <?php else : ?>
+                    <form method="post" action="<?php echo esc_url( $admin_post ); ?>">
+                        <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_BRAND ); ?>">
+                        <?php wp_nonce_field( self::ACTION_SAVE_BRAND ); ?>
+                        <div class="field">
+                            <label for="pharma_hub_brand_attribute"><?php esc_html_e( 'Atributo', 'pharma-hub-plugin' ); ?></label>
+                            <select id="pharma_hub_brand_attribute" name="pharma_hub_brand_attribute">
+                                <option value="" <?php selected( $brand, '' ); ?>><?php esc_html_e( 'Nenhum', 'pharma-hub-plugin' ); ?></option>
+                                <?php foreach ( $attributes as $attribute ) : ?>
+                                    <?php $taxonomy = wc_attribute_taxonomy_name( $attribute->attribute_name ); ?>
+                                    <option value="<?php echo esc_attr( $taxonomy ); ?>" <?php selected( $brand, $taxonomy ); ?>><?php echo esc_html( $attribute->attribute_label . ' (' . $taxonomy . ')' ); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="button"><?php esc_html_e( 'Guardar atributo', 'pharma-hub-plugin' ); ?></button>
+                    </form>
+                <?php endif; ?>
             </section>
         </div>
         <?php

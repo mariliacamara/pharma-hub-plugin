@@ -45,4 +45,19 @@ final class SettingsTest extends TestCase {
         $this->assertFalse( Pharma_Hub_Settings::is_valid_meta_key( "_ean'; DROP TABLE" ) );
         $this->assertFalse( Pharma_Hub_Settings::is_valid_meta_key( str_repeat( 'a', 192 ) ) );
     }
+
+    public function test_guesses_the_brand_attribute_until_one_is_chosen() {
+        $this->assertSame( 'pa_marca', Pharma_Hub_Settings::pick_brand_attribute( null, array( 'pa_cor', 'pa_brand', 'pa_marca' ) ) );
+        $this->assertSame( 'pa_brand', Pharma_Hub_Settings::pick_brand_attribute( false, array( 'pa_cor', 'pa_brand' ) ) );
+        $this->assertSame( '', Pharma_Hub_Settings::pick_brand_attribute( null, array( 'pa_cor' ) ) );
+        $this->assertSame( '', Pharma_Hub_Settings::pick_brand_attribute( null, array() ) );
+    }
+
+    public function test_keeps_the_chosen_brand_attribute_while_it_exists() {
+        $this->assertSame( 'pa_fabricante', Pharma_Hub_Settings::pick_brand_attribute( 'pa_fabricante', array( 'pa_marca', 'pa_fabricante' ) ) );
+        // "None" was chosen: no guess, even with pa_marca in the store.
+        $this->assertSame( '', Pharma_Hub_Settings::pick_brand_attribute( '', array( 'pa_marca' ) ) );
+        // The chosen attribute was deleted from the store.
+        $this->assertSame( '', Pharma_Hub_Settings::pick_brand_attribute( 'pa_fabricante', array( 'pa_marca' ) ) );
+    }
 }

@@ -61,6 +61,14 @@ function __( $text ) {
     return $text;
 }
 
+function wp_strip_all_tags( $text ) {
+    return trim( strip_tags( preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text ) ) );
+}
+
+function remove_accents( $text ) {
+    return strtr( $text, array( 'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'í' => 'i', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ú' => 'u', 'ç' => 'c', 'Á' => 'A', 'É' => 'E', 'Ó' => 'O', 'Ç' => 'C' ) );
+}
+
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-secret-box.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-error.php';
 require_once dirname( __DIR__ ) . '/includes/class-pharma-hub-client.php';
