@@ -106,16 +106,6 @@ class Pharma_Hub_Admin_Links {
     }
 
     /**
-     * Text without accents and in lower case, so "algodao" finds "Algodão".
-     *
-     * @param string $text Text.
-     * @return string
-     */
-    private static function fold( $text ) {
-        return strtolower( remove_accents( (string) $text ) );
-    }
-
-    /**
      * What the search looks at: the offer's name, REF and EAN, and the name
      * and REF of its product in the store.
      *
@@ -133,7 +123,7 @@ class Pharma_Hub_Admin_Links {
             $texts[] = $product->get_name();
             $texts[] = $product->get_sku();
         }
-        return array_map( array( __CLASS__, 'fold' ), array_filter( $texts, 'is_scalar' ) );
+        return array_map( array( 'Pharma_Hub_Linker', 'fold' ), array_filter( $texts, 'is_scalar' ) );
     }
 
     /**
@@ -282,7 +272,7 @@ class Pharma_Hub_Admin_Links {
                 continue;
             }
             $product = $links[ $offer_id ]['product_id'] ? wc_get_product( $links[ $offer_id ]['product_id'] ) : null;
-            if ( '' !== $term && ! Pharma_Hub_Linker::matches_search( self::fold( $term ), self::searchable( $offer, $product ) ) ) {
+            if ( '' !== $term && ! Pharma_Hub_Linker::matches_search( Pharma_Hub_Linker::fold( $term ), self::searchable( $offer, $product ) ) ) {
                 continue;
             }
             $rows[] = array( $offer, $links[ $offer_id ], $product ? $product : null );

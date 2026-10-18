@@ -6,6 +6,27 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-17
+
+### Added
+
+- Search in *Relatório*, next to the filters: by product, brand, REF or EAN,
+  of the KuantoKusta offer or of its WooCommerce product. Every word typed
+  must be found, in any order; case and accents are ignored. The search adds
+  to the other filters, stays when a summary card is clicked, and the CSV
+  exports only what was found.
+- The product's brand, read from a global product attribute, under the
+  product's name in *Relatório* (next to the REF) and as a "Marca" column of
+  the CSV. A variation shows the brand of its parent product.
+- *Definições* → "Marca dos produtos" chooses the attribute. Until one is
+  chosen, the first of `pa_marca`, `pa_marcas`, `pa_brand` and `pa_brands`
+  that the store has is used.
+
+### Changed
+
+- *Vínculos* and *Relatório* fold accents with the same rule
+  (`Pharma_Hub_Linker::fold()`).
+
 ## [0.8.0] - 2026-10-09
 
 ### Added

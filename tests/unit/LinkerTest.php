@@ -137,6 +137,11 @@ final class LinkerTest extends TestCase {
         $this->assertTrue( Pharma_Hub_Linker::matches_search( array( 'x' ), array( 'Andarilho' ) ) );
     }
 
+    public function test_folds_case_and_accents() {
+        $this->assertSame( 'algodao hidrofilo', Pharma_Hub_Linker::fold( 'Algodão Hidrófilo' ) );
+        $this->assertSame( '', Pharma_Hub_Linker::fold( null ) );
+    }
+
     public function test_search_ignores_texts_that_are_not_text() {
         $this->assertTrue( Pharma_Hub_Linker::matches_search( 'penso', array( null, array( 'x' ), 'Penso' ) ) );
         $this->assertFalse( Pharma_Hub_Linker::matches_search( 'x', array( null, array( 'x' ) ) ) );

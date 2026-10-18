@@ -28,6 +28,11 @@ class Pharma_Hub_Report {
     const ORDERS   = array( 'priority', 'name', 'store_price', 'difference', 'percent' );
 
     /**
+     * Longest search text kept, in characters.
+     */
+    const MAX_SEARCH = 100;
+
+    /**
      * The report for one offer state, from the cache or the hub.
      *
      * @param Pharma_Hub_Client $client Hub client.
@@ -64,7 +69,7 @@ class Pharma_Hub_Report {
      * Reads the screen's filters from the query string, keeping only known values.
      *
      * @param array $query Query arguments, such as $_GET after wp_unslash.
-     * @return array{state: string, outcome: string, easy: bool, check: bool, unlinked: bool, shipping: bool, orderby: string, order: string}
+     * @return array{state: string, outcome: string, easy: bool, check: bool, unlinked: bool, shipping: bool, search: string, orderby: string, order: string}
      */
     public static function filters_from( $query ) {
         $pick = function ( $key, $allowed, $fallback ) use ( $query ) {
@@ -81,9 +86,51 @@ class Pharma_Hub_Report {
             'check'    => $flag( 'check' ),
             'unlinked' => $flag( 'unlinked' ),
             'shipping' => $flag( 'shipping' ),
+            'search'   => self::clean_search( isset( $query['s'] ) ? $query['s'] : '' ),
             'orderby'  => $pick( 'orderby', self::ORDERS, 'priority' ),
             'order'    => $pick( 'order', array( 'asc', 'desc' ), 'asc' ),
         );
+    }
+
+    /**
+     * A search text from a request, as one short line without tags.
+     *
+     * @param mixed $text Value from a request.
+     * @return string
+     */
+    public static function clean_search( $text ) {
+        if ( ! is_string( $text ) ) {
+            return '';
+        }
+        $text = trim( (string) preg_replace( '/[\s\p{Cc}]+/u', ' ', wp_strip_all_tags( $text ) ) );
+        return function_exists( 'mb_substr' ) ? mb_substr( $text, 0, self::MAX_SEARCH, 'UTF-8' ) : substr( $text, 0, self::MAX_SEARCH );
+    }
+
+    /**
+     * What the search looks at for one row: the offer's name, REF and EAN,
+     * and the name, REF and brands of its product in the store. Folded, so
+     * case and accents do not matter.
+     *
+     * @param array    $row     Report row.
+     * @param array    $product The product's name and sku, or an empty array when the offer has no link.
+     * @param string[] $brands  The product's brands.
+     * @return string[]
+     */
+    public static function searchable( $row, $product = array(), $brands = array() ) {
+        $texts = array(
+            isset( $row['name'] ) ? $row['name'] : '',
+            isset( $row['sku'] ) ? $row['sku'] : '',
+            isset( $row['ean'] ) ? $row['ean'] : '',
+            isset( $product['name'] ) ? $product['name'] : '',
+            isset( $product['sku'] ) ? $product['sku'] : '',
+        );
+        $texts = array_filter(
+            array_merge( $texts, (array) $brands ),
+            function ( $text ) {
+                return is_scalar( $text ) && '' !== (string) $text;
+            }
+        );
+        return array_values( array_map( array( 'Pharma_Hub_Linker', 'fold' ), $texts ) );
     }
 
     /**
@@ -92,13 +139,15 @@ class Pharma_Hub_Report {
      * @param array[] $rows    Report rows.
      * @param array   $filters From filters_from().
      * @param array   $links   Resolved links by offer id, from Pharma_Hub_Links::resolve().
+     * @param array   $texts   What the search looks at, by offer id, from searchable().
      * @return array[]
      */
-    public static function filter( $rows, $filters, $links ) {
+    public static function filter( $rows, $filters, $links, $texts = array() ) {
+        $term = isset( $filters['search'] ) ? Pharma_Hub_Linker::fold( $filters['search'] ) : '';
         return array_values(
             array_filter(
                 $rows,
-                function ( $row ) use ( $filters, $links ) {
+                function ( $row ) use ( $filters, $links, $texts, $term ) {
                     if ( '' !== $filters['outcome'] && $row['outcome'] !== $filters['outcome'] ) {
                         return false;
                     }
@@ -108,9 +157,13 @@ class Pharma_Hub_Report {
                     if ( $filters['check'] && empty( $row['checkLink'] ) ) {
                         return false;
                     }
-                    if ( $filters['unlinked'] ) {
-                        $id = (string) $row['offerId'];
-                        if ( isset( $links[ $id ] ) && 'linked' === $links[ $id ]['state'] ) {
+                    $id = (string) $row['offerId'];
+                    if ( $filters['unlinked'] && isset( $links[ $id ] ) && 'linked' === $links[ $id ]['state'] ) {
+                        return false;
+                    }
+                    if ( '' !== $term ) {
+                        $searchable = isset( $texts[ $id ] ) ? $texts[ $id ] : self::searchable( $row );
+                        if ( ! Pharma_Hub_Linker::matches_search( $term, $searchable ) ) {
                             return false;
                         }
                     }

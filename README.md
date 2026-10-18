@@ -20,6 +20,7 @@ technical name of the service and of this repository.
 | Easy-adjust threshold in *Definições* | Built (0.5.0) |
 | Own menu, *Ligação ao hub* page, search in *Vínculos* | Built (0.7.0) |
 | History of one offer, with a chart | Built (0.8.0) |
+| Search by product and brand in *Relatório* | Built (0.9.0) |
 
 ## Requirements
 
@@ -52,10 +53,13 @@ technical name of the service and of this repository.
    in `_alg_ean`, the field of "EAN Barcode Generator for WooCommerce". If the store
    uses another EAN plugin, type its meta key in *Definições*.
 5. *Relatório* shows each product's price against the lowest on KuantoKusta, with
-   filters and a CSV export. *Regenerar* asks the hub for a new collection and follows
+   filters, a search by product, brand, REF or EAN, and a CSV export. *Regenerar* asks the hub for a new collection and follows
    it until the report is updated. The "histórico" link of a row shows how the
    store's price and the lowest price moved over time.
-6. *Vínculos* links each KuantoKusta offer to a product by SKU, EAN or store address,
+6. The brand comes from a global product attribute (*Produtos → Atributos*).
+   `pa_marca` is used when the store has it; another attribute is chosen in
+   *Definições*.
+7. *Vínculos* links each KuantoKusta offer to a product by SKU, EAN or store address,
    and lists the offers a person has to resolve.
 
 The screen needs the `manage_woocommerce` capability (administrators and shop

@@ -64,13 +64,13 @@ class Pharma_Hub_Admin_Report {
             return;
         }
 
-        list( $rows, $links, $products ) = self::prepare( $report, $filters );
+        list( $rows, $links, $products, $brands ) = self::prepare( $report, $filters );
 
         self::render_header( $report, $filters );
         Pharma_Hub_Admin_Runs::render_panel( $client );
         self::render_summary( $report, $filters );
         self::render_filters( $filters, count( $rows ) );
-        self::render_table( $rows, $links, $products, $filters );
+        self::render_table( $rows, $links, $products, $brands, $filters );
     }
 
     /**
@@ -93,10 +93,10 @@ class Pharma_Hub_Admin_Report {
             Pharma_Hub_Admin::redirect_back( array( array( 'error', Pharma_Hub_Admin::error_message( $error ) ) ), 'report' );
         }
 
-        list( $rows, , $products ) = self::prepare( $report, $filters );
-        $labels                    = self::outcome_labels();
-        $yes                       = __( 'Sim', 'pharma-hub-plugin' );
-        $no                        = __( 'Não', 'pharma-hub-plugin' );
+        list( $rows, , $products, $brands ) = self::prepare( $report, $filters );
+        $labels                             = self::outcome_labels();
+        $yes                                = __( 'Sim', 'pharma-hub-plugin' );
+        $no                                 = __( 'Não', 'pharma-hub-plugin' );
 
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
@@ -110,6 +110,7 @@ class Pharma_Hub_Admin_Report {
             __( 'REF', 'pharma-hub-plugin' ),
             __( 'EAN', 'pharma-hub-plugin' ),
             __( 'Produto na loja', 'pharma-hub-plugin' ),
+            __( 'Marca', 'pharma-hub-plugin' ),
             __( 'Preço da loja (€)', 'pharma-hub-plugin' ),
             __( 'Menor preço (€)', 'pharma-hub-plugin' ),
             __( 'Loja mais barata', 'pharma-hub-plugin' ),
@@ -140,6 +141,7 @@ class Pharma_Hub_Admin_Report {
                 Pharma_Hub_Format::csv_cell( $row['sku'] ),
                 Pharma_Hub_Format::csv_cell( $row['ean'] ),
                 Pharma_Hub_Format::csv_cell( $product ? wp_strip_all_tags( $product->get_formatted_name() ) : '' ),
+                Pharma_Hub_Format::csv_cell( isset( $brands[ $id ] ) ? implode( ', ', $brands[ $id ] ) : '' ),
                 $number( $row['storePriceCents'] ),
                 $number( $row['lowestPriceCents'] ),
                 Pharma_Hub_Format::csv_cell( $row['lowestStoreName'] ),
@@ -168,7 +170,7 @@ class Pharma_Hub_Admin_Report {
      *
      * @param array $report  Report from the hub.
      * @param array $filters From Pharma_Hub_Report::filters_from().
-     * @return array array( rows, links by offer id, linked WC_Product by offer id ).
+     * @return array array( rows, links by offer id, linked WC_Product by offer id, brand names by offer id ).
      */
     private static function prepare( $report, $filters ) {
         $rows   = $report['rows'];
@@ -196,9 +198,57 @@ class Pharma_Hub_Admin_Report {
             }
         }
 
-        $rows = Pharma_Hub_Report::filter( $rows, $filters, $links );
+        $brands = self::brands( $products );
+
+        $texts = array();
+        if ( '' !== $filters['search'] ) {
+            foreach ( $rows as $row ) {
+                $id           = (string) $row['offerId'];
+                $product      = isset( $products[ $id ] ) ? $products[ $id ] : null;
+                $texts[ $id ] = Pharma_Hub_Report::searchable(
+                    $row,
+                    $product ? array(
+                        'name' => $product->get_name(),
+                        'sku'  => $product->get_sku(),
+                    ) : array(),
+                    isset( $brands[ $id ] ) ? $brands[ $id ] : array()
+                );
+            }
+        }
+
+        $rows = Pharma_Hub_Report::filter( $rows, $filters, $links, $texts );
         $rows = Pharma_Hub_Report::sort( $rows, $filters['orderby'], $filters['order'], $names );
-        return array( $rows, $links, $products );
+        return array( $rows, $links, $products, $brands );
+    }
+
+    /**
+     * The brands of the linked products, from the attribute chosen in
+     * Definições. A variation has the brand of its parent product.
+     *
+     * @param WC_Product[] $products Linked products by offer id.
+     * @return array Brand names by offer id; offers without a brand are left out.
+     */
+    private static function brands( $products ) {
+        $taxonomy = Pharma_Hub_Settings::brand_attribute();
+        if ( '' === $taxonomy || ! $products || ! taxonomy_exists( $taxonomy ) ) {
+            return array();
+        }
+        $parents = array();
+        foreach ( $products as $offer_id => $product ) {
+            $parents[ $offer_id ] = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+        }
+        // One query for every product, instead of one per row.
+        update_object_term_cache( array_unique( array_values( $parents ) ), 'product' );
+
+        $brands = array();
+        foreach ( $parents as $offer_id => $parent_id ) {
+            $terms = get_the_terms( $parent_id, $taxonomy );
+            if ( is_array( $terms ) && $terms ) {
+                // WordPress keeps term names with & as &amp;.
+                $brands[ $offer_id ] = array_map( 'wp_specialchars_decode', wp_list_pluck( $terms, 'name' ) );
+            }
+        }
+        return $brands;
     }
 
     /**
@@ -355,6 +405,8 @@ class Pharma_Hub_Admin_Report {
                 <?php endif; ?>
                 <input type="hidden" name="orderby" value="<?php echo esc_attr( $filters['orderby'] ); ?>">
                 <input type="hidden" name="order" value="<?php echo esc_attr( $filters['order'] ); ?>">
+                <label class="screen-reader-text" for="pharma-hub-report-search"><?php esc_html_e( 'Procurar produto ou marca', 'pharma-hub-plugin' ); ?></label>
+                <input type="search" id="pharma-hub-report-search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" maxlength="<?php echo (int) Pharma_Hub_Report::MAX_SEARCH; ?>" placeholder="<?php esc_attr_e( 'Produto, marca, REF ou EAN', 'pharma-hub-plugin' ); ?>" style="width: 260px; max-width: 100%">
                 <label class="screen-reader-text" for="pharma-hub-state"><?php esc_html_e( 'Ofertas a mostrar', 'pharma-hub-plugin' ); ?></label>
                 <select name="state" id="pharma-hub-state">
                     <option value="active" <?php selected( $filters['state'], 'active' ); ?>><?php esc_html_e( 'Com stock no KuantoKusta', 'pharma-hub-plugin' ); ?></option>
@@ -363,6 +415,9 @@ class Pharma_Hub_Admin_Report {
                 <label><input type="checkbox" name="unlinked" value="1" <?php checked( $filters['unlinked'] ); ?>> <?php esc_html_e( 'Só sem vínculo', 'pharma-hub-plugin' ); ?></label>
                 <label><input type="checkbox" name="shipping" value="1" <?php checked( $filters['shipping'] ); ?>> <?php esc_html_e( 'Comparar com portes', 'pharma-hub-plugin' ); ?></label>
                 <button type="submit" class="button"><?php esc_html_e( 'Aplicar', 'pharma-hub-plugin' ); ?></button>
+                <?php if ( '' !== $filters['search'] ) : ?>
+                    <a href="<?php echo esc_url( self::url( array_merge( $filters, array( 'search' => '' ) ) ) ); ?>"><?php esc_html_e( 'Limpar pesquisa', 'pharma-hub-plugin' ); ?></a>
+                <?php endif; ?>
             </form>
             <span class="count">
                 <?php
@@ -412,10 +467,11 @@ class Pharma_Hub_Admin_Report {
      * @param array[] $rows     Rows to show.
      * @param array   $links    Resolved links by offer id.
      * @param array   $products Linked products by offer id.
+     * @param array   $brands   Brand names by offer id.
      * @param array   $filters  Current filters.
      * @return void
      */
-    private static function render_table( $rows, $links, $products, $filters ) {
+    private static function render_table( $rows, $links, $products, $brands, $filters ) {
         $shipping = $filters['shipping'];
         $store    = get_transient( Pharma_Hub_Settings::TRANSIENT_STORE );
         $price    = is_array( $store ) && ! empty( $store['name'] )
@@ -440,7 +496,16 @@ class Pharma_Hub_Admin_Report {
             </thead>
             <tbody>
                 <?php if ( ! $rows ) : ?>
-                    <tr><td colspan="6"><?php esc_html_e( 'Nenhum produto com estes filtros.', 'pharma-hub-plugin' ); ?></td></tr>
+                    <tr><td colspan="6">
+                        <?php
+                        if ( '' !== $filters['search'] ) {
+                            /* translators: %s: text searched for */
+                            echo esc_html( sprintf( __( 'Nenhum produto com estes filtros corresponde a "%s".', 'pharma-hub-plugin' ), $filters['search'] ) );
+                        } else {
+                            esc_html_e( 'Nenhum produto com estes filtros.', 'pharma-hub-plugin' );
+                        }
+                        ?>
+                    </td></tr>
                 <?php endif; ?>
                 <?php
                 foreach ( $rows as $row ) :
@@ -468,6 +533,9 @@ class Pharma_Hub_Admin_Report {
                                 if ( $row['sku'] ) {
                                     /* translators: %s: SKU */
                                     echo esc_html( sprintf( __( 'REF %s', 'pharma-hub-plugin' ), $row['sku'] ) ) . ' · ';
+                                }
+                                if ( isset( $brands[ $id ] ) ) {
+                                    echo esc_html( implode( ', ', $brands[ $id ] ) ) . ' · ';
                                 }
                                 ?>
                                 <a href="<?php echo esc_url( $row['productUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'ver no KuantoKusta', 'pharma-hub-plugin' ); ?></a>
@@ -589,6 +657,9 @@ class Pharma_Hub_Admin_Report {
                 $args[ $flag ] = '1';
             }
         }
+        if ( '' !== $filters['search'] ) {
+            $args['s'] = $filters['search'];
+        }
         if ( 'priority' !== $filters['orderby'] ) {
             $args['orderby'] = $filters['orderby'];
             $args['order']   = $filters['order'];
@@ -604,6 +675,7 @@ class Pharma_Hub_Admin_Report {
      * @return string
      */
     public static function url( $filters, $extra = array() ) {
-        return Pharma_Hub_Admin::tab_url( 'report', array_merge( self::query_args( $filters ), $extra ) );
+        // add_query_arg() does not encode values, and a search can hold & or #.
+        return Pharma_Hub_Admin::tab_url( 'report', array_map( 'rawurlencode', array_merge( self::query_args( $filters ), $extra ) ) );
     }
 }

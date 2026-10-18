@@ -64,6 +64,7 @@ another (0.7.0). When the address and the token both come from `wp-config.php`,
 | Token | `PHARMA_HUB_TOKEN` in `wp-config.php` (recommended), or *Ligação ao hub* | Stored encrypted (libsodium secretbox) with a key derived from `AUTH_KEY` and `AUTH_SALT`. Write-only field; only the last four characters are shown. Not autoloaded |
 | KuantoKusta key | *KuantoKusta → Definições* | Write-only. Sent once to `PUT /v1/plugin/kuantokusta/credential`; the hub checks it with KuantoKusta and stores it. The plugin keeps no copy |
 | EAN field | *KuantoKusta → Definições* | The meta key of an EAN plugin, looked up after WooCommerce's own GTIN field. Defaults to `_alg_ean` (see "Linking") |
+| Brand attribute | *KuantoKusta → Definições* | A global product attribute, chosen from the store's (`pa_...`), or none. Until one is chosen: the first of `pa_marca`, `pa_marcas`, `pa_brand`, `pa_brands` that exists (see "Search and brand") |
 
 Why the database is allowed for the token at all: some stores cannot edit
 `wp-config.php`. Encrypting with the site's secret keys means a copy of the database
@@ -181,6 +182,7 @@ The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Defin
   - offer state (active, or including out of stock and delisted);
   - only without a link;
   - "Comparar com portes".
+- **Search and brand (0.9.0):** see below.
 - **Sorting:** the default (0.6.0) puts what can be acted on first: easy adjusts, then
   dearer, tied, cheapest, only store, no data; inside each group the smallest gap
   first. A column title sorts by product, the store's price or the difference, and a
@@ -192,6 +194,35 @@ The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Defin
 - **Formatting:** cents are formatted with integer arithmetic (`15,99 €`, thousands
   with a thin space); percentages with one decimal and a sign (`+3,2 %`); times in
   `Europe/Lisbon`.
+
+## Search and brand in the report (built in 0.9.0)
+
+Asked by the client: find a product, or every product of a brand, in
+*Relatório*.
+
+- **Where the brand comes from:** a global WooCommerce product attribute
+  (Zincomed keeps the brand there, not in WooCommerce's Brands taxonomy). The
+  hub knows nothing about brands: KuantoKusta's offers do not carry one, and the
+  plugin never asks the hub for it. A product with no link has no brand.
+- **Which attribute:** chosen in *Definições* from the store's own attributes,
+  so a slug cannot be mistyped. While nothing was saved, the first of
+  `pa_marca`, `pa_marcas`, `pa_brand`, `pa_brands` that exists is used, so a
+  store with `pa_marca` needs no setting. "Nenhum" turns it off. Rule in
+  `Pharma_Hub_Settings::pick_brand_attribute()`, tested without WordPress.
+- **Variations** take the brand of their parent product: attributes used to
+  describe a product (not to make variations) live on the parent.
+- **Cost:** the terms of every linked product are read with one query
+  (`update_object_term_cache`) before the rows are drawn.
+- **The search (`s`)** looks at the offer's name, REF and EAN and at its
+  product's name, REF and brands. Same rule as *Vínculos*
+  (`Pharma_Hub_Linker::matches_search()`): every word must be found, in any
+  order, ignoring case and accents. "bayer supradyn" finds Supradyn of the
+  brand Bayer. Texts in `Pharma_Hub_Report::searchable()`.
+- It adds to the other filters, travels in the query string like them (so a
+  search can be bookmarked), is kept by the summary cards and the history
+  link, and the CSV exports what was found.
+- **Shown:** the brand on the line under the product's name, after the REF,
+  and as a "Marca" column in the CSV, so a person sees why a row was found.
 
 ## History of one offer (built in 0.8.0)
 
@@ -288,7 +319,7 @@ The *Regenerar* button sits under the report's header.
 ## Testing
 
 - PHPUnit without WordPress for the pure parts: encryption, validation, the client
-  with a fake transport, error messages, linking rules, the report's filters and
-  order, and the history (periods, summary, changes and the chart's geometry).
+  with a fake transport, error messages, linking rules, the report's filters,
+  search and order, the brand attribute, and the history (periods, summary, changes and the chart's geometry).
 - On a real site: `staging.zincomed.com`, which runs WooCommerce with the WoodMart
   theme.

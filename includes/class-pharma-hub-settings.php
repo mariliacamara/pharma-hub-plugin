@@ -1,6 +1,7 @@
 <?php
 /**
- * The plugin's settings: the hub's address, the token and the EAN field.
+ * The plugin's settings: the hub's address, the token, the EAN field and
+ * the brand attribute.
  *
  * Constants in wp-config.php win over the values saved in the settings
  * screen:
@@ -21,6 +22,7 @@ class Pharma_Hub_Settings {
     const OPTION_URL          = 'pharma_hub_url';
     const OPTION_TOKEN        = 'pharma_hub_token';
     const OPTION_EAN_META_KEY = 'pharma_hub_ean_meta_key';
+    const OPTION_BRAND        = 'pharma_hub_brand_attribute';
     const TRANSIENT_STORE     = 'pharma_hub_store';
 
     /**
@@ -44,6 +46,12 @@ class Pharma_Hub_Settings {
      * A post meta key: what WooCommerce and other plugins use.
      */
     const META_KEY_PATTERN = '/^[A-Za-z0-9_\-]{1,191}$/';
+
+    /**
+     * Global product attributes that usually hold the brand, in the order
+     * they are tried while nothing has been chosen in the settings.
+     */
+    const BRAND_GUESSES = array( 'pa_marca', 'pa_marcas', 'pa_brand', 'pa_brands' );
 
     /**
      * Checks and normalises the hub's address.
@@ -237,6 +245,56 @@ class Pharma_Hub_Settings {
             return false;
         }
         update_option( self::OPTION_EAN_META_KEY, $key );
+        return true;
+    }
+
+    /**
+     * The global product attribute that holds the brand, such as pa_marca,
+     * or an empty string when the store has none.
+     *
+     * Until a person chooses one in the settings, the first of
+     * BRAND_GUESSES that exists in the store is used.
+     *
+     * @return string
+     */
+    public static function brand_attribute() {
+        $available = function_exists( 'wc_get_attribute_taxonomy_names' ) ? wc_get_attribute_taxonomy_names() : array();
+        return self::pick_brand_attribute( get_option( self::OPTION_BRAND, null ), $available );
+    }
+
+    /**
+     * The brand attribute from what was saved and what the store has.
+     *
+     * @param mixed    $saved     Saved value: null when nothing was saved, an empty string for none.
+     * @param string[] $available Taxonomy names of the store's global attributes.
+     * @return string
+     */
+    public static function pick_brand_attribute( $saved, $available ) {
+        $available = array_values( array_filter( (array) $available, 'is_string' ) );
+        if ( is_string( $saved ) ) {
+            return in_array( $saved, $available, true ) ? $saved : '';
+        }
+        foreach ( self::BRAND_GUESSES as $guess ) {
+            if ( in_array( $guess, $available, true ) ) {
+                return $guess;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Saves the attribute that holds the brand.
+     *
+     * @param string   $taxonomy  Taxonomy name of the attribute; empty means none.
+     * @param string[] $available Taxonomy names of the store's global attributes.
+     * @return bool False when the attribute is not one of the store's; nothing is saved then.
+     */
+    public static function save_brand_attribute( $taxonomy, $available ) {
+        $taxonomy = (string) $taxonomy;
+        if ( '' !== $taxonomy && ! in_array( $taxonomy, (array) $available, true ) ) {
+            return false;
+        }
+        update_option( self::OPTION_BRAND, $taxonomy );
         return true;
     }
 

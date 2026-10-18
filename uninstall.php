@@ -12,6 +12,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) exit;
 delete_option( 'pharma_hub_url' );
 delete_option( 'pharma_hub_token' );
 delete_option( 'pharma_hub_ean_meta_key' );
+delete_option( 'pharma_hub_brand_attribute' );
 delete_transient( 'pharma_hub_store' );
 delete_transient( 'pharma_hub_report_active' );
 delete_transient( 'pharma_hub_report_all' );

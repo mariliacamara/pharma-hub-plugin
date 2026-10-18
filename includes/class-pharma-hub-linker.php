@@ -137,6 +137,19 @@ class Pharma_Hub_Linker {
     }
 
     /**
+     * Text without accents and in lower case, so "algodao" finds "Algodão".
+     *
+     * Accents are removed by WordPress's remove_accents(), so a search
+     * folds them the same way as the rest of WordPress.
+     *
+     * @param mixed $text Text.
+     * @return string
+     */
+    public static function fold( $text ) {
+        return strtolower( remove_accents( (string) $text ) );
+    }
+
+    /**
      * The SKU as stored by WooCommerce, or null when there is none.
      *
      * @param mixed $sku Value from the hub.
