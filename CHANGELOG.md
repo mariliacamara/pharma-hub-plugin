@@ -6,6 +6,25 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-27
+
+### Changed
+
+- *Relatório* lists every offer synced from the store by default, with or without
+  stock and active on KuantoKusta or not. The selector offers "Todas as ofertas
+  sincronizadas" (the default) and "Só com stock no KuantoKusta"; before, the default
+  hid the offers that a collection does not compare.
+- Offers without stock or off KuantoKusta carry a pill ("Sem stock", "Retirada do
+  KuantoKusta") in the table.
+
+### Added
+
+- An offer the hub never compared shows "Ainda não comparada" instead of "Sem dados",
+  with the offer's own price. This needs the hub change that lists these offers
+  (hub pull request #13); with an older hub, only the offers compared at least once
+  are listed.
+- "Estado da oferta" column in the CSV.
+
 ## [0.9.0] - 2026-10-17
 
 ### Added

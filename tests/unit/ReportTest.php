@@ -41,7 +41,7 @@ final class ReportTest extends TestCase {
     public function test_keeps_only_known_filter_values() {
         $this->assertSame(
             array(
-                'state'    => 'active',
+                'state'    => 'all',
                 'outcome'  => '',
                 'easy'     => false,
                 'check'    => false,
@@ -54,8 +54,26 @@ final class ReportTest extends TestCase {
             Pharma_Hub_Report::filters_from( array( 'state' => 'gone', 'outcome' => '<script>', 'easy' => 'yes', 'orderby' => array( 'x' ) ) )
         );
 
-        $filters = Pharma_Hub_Report::filters_from( array( 'state' => 'all', 'outcome' => 'tied', 'easy' => '1', 'shipping' => '1', 'orderby' => 'percent', 'order' => 'desc' ) );
-        $this->assertSame( array( 'all', 'tied', true, true, 'percent', 'desc' ), array( $filters['state'], $filters['outcome'], $filters['easy'], $filters['shipping'], $filters['orderby'], $filters['order'] ) );
+        $filters = Pharma_Hub_Report::filters_from( array( 'state' => 'active', 'outcome' => 'tied', 'easy' => '1', 'shipping' => '1', 'orderby' => 'percent', 'order' => 'desc' ) );
+        $this->assertSame( array( 'active', 'tied', true, true, 'percent', 'desc' ), array( $filters['state'], $filters['outcome'], $filters['easy'], $filters['shipping'], $filters['orderby'], $filters['order'] ) );
+    }
+
+    public function test_shows_every_synced_offer_unless_asked_for_active_ones() {
+        $this->assertSame( 'all', Pharma_Hub_Report::filters_from( array() )['state'] );
+        $this->assertSame( 'all', Pharma_Hub_Report::filters_from( array( 'state' => 'out_of_stock' ) )['state'] );
+        $this->assertSame( 'active', Pharma_Hub_Report::filters_from( array( 'state' => 'active' ) )['state'] );
+    }
+
+    public function test_an_offer_never_compared_goes_through_the_filters_and_the_sort() {
+        $never = self::row( 9, 'Nunca comparada', 'no_data', 1250, null, array( 'runId' => null, 'comparedAt' => null, 'offerState' => 'out_of_stock' ) );
+        $rows  = array_merge( self::rows(), array( $never ) );
+
+        $filters = Pharma_Hub_Report::filters_from( array( 'outcome' => 'no_data' ) );
+        $this->assertSame( array( '3', '9' ), self::ids( Pharma_Hub_Report::filter( $rows, $filters, array() ) ) );
+
+        // It has no gap, so it goes last, with the other offers without data.
+        $this->assertSame( array( '1', '4', '2', '3', '9' ), self::ids( Pharma_Hub_Report::sort( $rows, 'priority', 'asc' ) ) );
+        $this->assertSame( array( '4', '1', '2', '3', '9' ), self::ids( Pharma_Hub_Report::sort( $rows, 'difference', 'desc' ) ) );
     }
 
     public function test_cleans_the_search_text() {

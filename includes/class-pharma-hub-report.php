@@ -24,7 +24,7 @@ class Pharma_Hub_Report {
     const CACHE_SECONDS = 300;
 
     const OUTCOMES = array( 'cheapest', 'tied', 'more_expensive', 'only_store', 'no_data' );
-    const STATES   = array( 'active', 'all' );
+    const STATES   = array( 'all', 'active' );
     const ORDERS   = array( 'priority', 'name', 'store_price', 'difference', 'percent' );
 
     /**
@@ -36,7 +36,7 @@ class Pharma_Hub_Report {
      * The report for one offer state, from the cache or the hub.
      *
      * @param Pharma_Hub_Client $client Hub client.
-     * @param string            $state  active or all.
+     * @param string            $state  all (every synced offer) or active (listed and in stock).
      * @param bool              $fresh  Skip the cache.
      * @return array The hub's answer, with every page of rows in "rows".
      * @throws Pharma_Hub_Error When the hub refuses or cannot be reached.
@@ -80,7 +80,7 @@ class Pharma_Hub_Report {
             return isset( $query[ $key ] ) && '1' === $query[ $key ];
         };
         return array(
-            'state'    => $pick( 'state', self::STATES, 'active' ),
+            'state'    => $pick( 'state', self::STATES, 'all' ),
             'outcome'  => $pick( 'outcome', self::OUTCOMES, '' ),
             'easy'     => $flag( 'easy' ),
             'check'    => $flag( 'check' ),

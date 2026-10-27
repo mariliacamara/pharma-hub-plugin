@@ -138,11 +138,11 @@ class Pharma_Hub_Client {
      * The first page carries the collection, the thresholds and the summary;
      * the rows of the following pages are added to it.
      *
-     * @param string $state active (listed and in stock) or all.
+     * @param string $state all (every synced offer) or active (listed and in stock).
      * @return array run, easyAdjustCents, checkLinkPercent, summary and rows.
      * @throws Pharma_Hub_Error When the hub refuses or cannot be reached.
      */
-    public function get_report( $state = 'active' ) {
+    public function get_report( $state = 'all' ) {
         $report = null;
         $after  = null;
         for ( $page = 0; $page < 100; $page++ ) {
