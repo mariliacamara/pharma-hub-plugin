@@ -114,6 +114,29 @@ final class ClientTest extends TestCase {
         );
     }
 
+    public function test_asks_for_every_synced_offer_unless_told_otherwise() {
+        $urls   = array();
+        $client = new Pharma_Hub_Client(
+            'https://hub.example.com',
+            self::TOKEN,
+            function ( $url ) use ( &$urls ) {
+                $urls[] = $url;
+                return self::answer( 200, array( 'run' => null, 'summary' => array( 'offers' => 0 ), 'rows' => array(), 'nextCursor' => null ) );
+            }
+        );
+
+        $client->get_report();
+        $client->get_report( 'active' );
+
+        $this->assertSame(
+            array(
+                'https://hub.example.com/v1/plugin/kuantokusta/report?limit=200&state=all',
+                'https://hub.example.com/v1/plugin/kuantokusta/report?limit=200&state=active',
+            ),
+            $urls
+        );
+    }
+
     public function test_reports_the_hubs_error_code_retry_after_and_request_id() {
         $client = $this->client_answering(
             self::answer(

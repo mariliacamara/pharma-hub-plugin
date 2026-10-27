@@ -40,6 +40,46 @@ class Pharma_Hub_Admin_Report {
     }
 
     /**
+     * Where an offer stands on KuantoKusta, as the hub reports it.
+     *
+     * @return array
+     */
+    public static function offer_state_labels() {
+        return array(
+            'active'       => __( 'Com stock', 'pharma-hub-plugin' ),
+            'out_of_stock' => __( 'Sem stock', 'pharma-hub-plugin' ),
+            'delisted'     => __( 'Retirada do KuantoKusta', 'pharma-hub-plugin' ),
+        );
+    }
+
+    /**
+     * The offer's state, or an empty string when the hub did not say.
+     *
+     * @param array $row Report row.
+     * @return string
+     */
+    public static function offer_state_label( $row ) {
+        $labels = self::offer_state_labels();
+        return isset( $row['offerState'], $labels[ $row['offerState'] ] ) ? $labels[ $row['offerState'] ] : '';
+    }
+
+    /**
+     * What the comparison of a row says. An offer the hub never compared
+     * (out of stock or off KuantoKusta since it was first copied) has no
+     * collection and is not the same as a page that could not be read.
+     *
+     * @param array $row Report row.
+     * @return string
+     */
+    public static function situation_label( $row ) {
+        $labels = self::outcome_labels();
+        if ( array_key_exists( 'runId', $row ) && null === $row['runId'] ) {
+            return __( 'Ainda não comparada', 'pharma-hub-plugin' );
+        }
+        return isset( $labels[ $row['outcome'] ] ) ? $labels[ $row['outcome'] ] : $row['outcome'];
+    }
+
+    /**
      * Renders the tab.
      *
      * @return void
@@ -94,7 +134,6 @@ class Pharma_Hub_Admin_Report {
         }
 
         list( $rows, , $products, $brands ) = self::prepare( $report, $filters );
-        $labels                             = self::outcome_labels();
         $yes                                = __( 'Sim', 'pharma-hub-plugin' );
         $no                                 = __( 'Não', 'pharma-hub-plugin' );
 
@@ -119,6 +158,7 @@ class Pharma_Hub_Admin_Report {
             __( 'Posição', 'pharma-hub-plugin' ),
             __( 'N.º de lojas', 'pharma-hub-plugin' ),
             __( 'Situação', 'pharma-hub-plugin' ),
+            __( 'Estado da oferta', 'pharma-hub-plugin' ),
             __( 'Ajuste fácil', 'pharma-hub-plugin' ),
             __( 'Diferença suspeita', 'pharma-hub-plugin' ),
             __( 'Preço com portes (€)', 'pharma-hub-plugin' ),
@@ -149,7 +189,8 @@ class Pharma_Hub_Admin_Report {
                 Pharma_Hub_Format::csv_cell( null === $row['differencePercent'] ? '' : str_replace( '.', ',', sprintf( '%.1f', $row['differencePercent'] ) ), true ),
                 Pharma_Hub_Format::csv_cell( $row['storePosition'], true ),
                 Pharma_Hub_Format::csv_cell( $row['storeCount'], true ),
-                Pharma_Hub_Format::csv_cell( isset( $labels[ $row['outcome'] ] ) ? $labels[ $row['outcome'] ] : $row['outcome'] ),
+                Pharma_Hub_Format::csv_cell( self::situation_label( $row ) ),
+                Pharma_Hub_Format::csv_cell( self::offer_state_label( $row ) ),
                 empty( $row['easyAdjust'] ) ? $no : $yes,
                 empty( $row['checkLink'] ) ? $no : $yes,
                 $number( $row['storeTotalCents'] ),
@@ -409,8 +450,8 @@ class Pharma_Hub_Admin_Report {
                 <input type="search" id="pharma-hub-report-search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" maxlength="<?php echo (int) Pharma_Hub_Report::MAX_SEARCH; ?>" placeholder="<?php esc_attr_e( 'Produto, marca, REF ou EAN', 'pharma-hub-plugin' ); ?>" style="width: 260px; max-width: 100%">
                 <label class="screen-reader-text" for="pharma-hub-state"><?php esc_html_e( 'Ofertas a mostrar', 'pharma-hub-plugin' ); ?></label>
                 <select name="state" id="pharma-hub-state">
-                    <option value="active" <?php selected( $filters['state'], 'active' ); ?>><?php esc_html_e( 'Com stock no KuantoKusta', 'pharma-hub-plugin' ); ?></option>
-                    <option value="all" <?php selected( $filters['state'], 'all' ); ?>><?php esc_html_e( 'Incluir sem stock e retiradas', 'pharma-hub-plugin' ); ?></option>
+                    <option value="all" <?php selected( $filters['state'], 'all' ); ?>><?php esc_html_e( 'Todas as ofertas sincronizadas', 'pharma-hub-plugin' ); ?></option>
+                    <option value="active" <?php selected( $filters['state'], 'active' ); ?>><?php esc_html_e( 'Só com stock no KuantoKusta', 'pharma-hub-plugin' ); ?></option>
                 </select>
                 <label><input type="checkbox" name="unlinked" value="1" <?php checked( $filters['unlinked'] ); ?>> <?php esc_html_e( 'Só sem vínculo', 'pharma-hub-plugin' ); ?></label>
                 <label><input type="checkbox" name="shipping" value="1" <?php checked( $filters['shipping'] ); ?>> <?php esc_html_e( 'Comparar com portes', 'pharma-hub-plugin' ); ?></label>
@@ -478,7 +519,6 @@ class Pharma_Hub_Admin_Report {
             /* translators: %s: store name */
             ? sprintf( __( 'Preço %s', 'pharma-hub-plugin' ), $store['name'] )
             : __( 'Preço da loja', 'pharma-hub-plugin' );
-        $labels   = self::outcome_labels();
         ?>
         <div class="pharma-hub-scroll">
         <table class="pharma-hub-table">
@@ -583,7 +623,10 @@ class Pharma_Hub_Admin_Report {
                             <?php if ( ! empty( $row['easyAdjust'] ) ) : ?>
                                 <span class="pharma-hub-pill easy"><?php esc_html_e( 'Ajuste fácil', 'pharma-hub-plugin' ); ?></span>
                             <?php else : ?>
-                                <span class="pharma-hub-pill <?php echo esc_attr( $row['outcome'] ); ?>"><?php echo esc_html( isset( $labels[ $row['outcome'] ] ) ? $labels[ $row['outcome'] ] : $row['outcome'] ); ?></span>
+                                <span class="pharma-hub-pill <?php echo esc_attr( $row['outcome'] ); ?>"><?php echo esc_html( self::situation_label( $row ) ); ?></span>
+                            <?php endif; ?>
+                            <?php if ( isset( $row['offerState'] ) && 'active' !== $row['offerState'] && '' !== self::offer_state_label( $row ) ) : ?>
+                                <span class="pharma-hub-pill"><?php echo esc_html( self::offer_state_label( $row ) ); ?></span>
                             <?php endif; ?>
                             <?php if ( ! empty( $row['checkLink'] ) ) : ?>
                                 <span class="pharma-hub-pill check"><?php esc_html_e( 'Diferença suspeita', 'pharma-hub-plugin' ); ?></span>
@@ -646,7 +689,7 @@ class Pharma_Hub_Admin_Report {
      */
     private static function query_args( $filters ) {
         $args = array();
-        if ( 'active' !== $filters['state'] ) {
+        if ( 'all' !== $filters['state'] ) {
             $args['state'] = $filters['state'];
         }
         if ( '' !== $filters['outcome'] ) {

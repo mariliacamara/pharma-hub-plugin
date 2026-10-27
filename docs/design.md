@@ -145,7 +145,7 @@ those that need a person first. Since 0.7.0:
 The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Definições*.
 
 - **Data:** every page of `GET /v1/plugin/kuantokusta/report` (200 rows a page; about
-  185 for Zincomed), kept for 5 minutes per offer state. "Atualizar" reads the hub
+  346 for Zincomed since 0.10.0, 185 before), kept for 5 minutes per offer state. "Atualizar" reads the hub
   again. The report's offers are linked on the way, as in *Vínculos*.
 - **Header:** when the last collection ended (Portugal time) and how, and a warning
   with the number of `stale` rows.
@@ -179,7 +179,8 @@ The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Defin
   comparison: the plugin still computes none. It says nothing about cost or margin.
 - **Filters (query string, so a view can be bookmarked):**
   - outcome, only easy adjust, only "Diferença suspeita": through the cards;
-  - offer state (active, or including out of stock and delisted);
+  - offer state (every synced offer, the default since 0.10.0, or only the active
+    ones);
   - only without a link;
   - "Comparar com portes".
 - **Search and brand (0.9.0):** see below.
@@ -194,6 +195,32 @@ The first tab of *ZincoGroup Hub → KuantoKusta*, before *Vínculos* and *Defin
 - **Formatting:** cents are formatted with integer arithmetic (`15,99 €`, thousands
   with a thin space); percentages with one decimal and a sign (`+3,2 %`); times in
   `Europe/Lisbon`.
+
+## Every synced offer in the report (built in 0.10.0)
+
+Asked by the client: every product synced from the store must show in the report,
+whether or not it has stock and whether or not it is active on KuantoKusta. Until
+0.9.0 the report showed only the offers the hub compares (listed and in stock), which
+left out roughly half of them (185 of about 346 for Zincomed).
+
+- **The default is "Todas as ofertas sincronizadas"** (`state=all`). The selector's
+  other choice is "Só com stock no KuantoKusta" (`state=active`). The URL carries
+  `state` only when it is `active`.
+- **Why the plugin alone could not do it:** the hub left out an offer that had never
+  been compared, even with `state=all`. The hub now lists them (hub decision 0031) as
+  `no_data`, with the offer's own price and a null `runId` and `comparedAt`. Without
+  that change, 0.10.0 still shows every offer that has been compared at least once.
+- **What a row says about the offer:** a pill "Sem stock" or "Retirada do KuantoKusta"
+  next to the situation, from `offerState`. An offer with stock shows no pill.
+- **An offer never compared** shows "Ainda não comparada" instead of "Sem dados". They
+  are different: "Sem dados" is a page the hub read and could not use; the other has not
+  been read at all. The plugin tells them apart by `runId` being null. The offer's own
+  price is shown; the other columns are empty.
+- **Rows keep every filter and sort.** An offer without a gap goes with the others
+  without data, last.
+- **CSV:** a column "Estado da oferta" (Com stock, Sem stock, Retirada do KuantoKusta)
+  after "Situação", so the file can be filtered in Excel. "Comparado em" is empty for
+  an offer never compared.
 
 ## Search and brand in the report (built in 0.9.0)
 
@@ -265,6 +292,8 @@ collection that reached it (`GET /v1/plugin/kuantokusta/offers/{id}/history`).
 - `;` separator, decimal comma, UTF-8 with BOM, CRLF lines;
 - amounts without the thousands separator, so a spreadsheet reads them as numbers;
 - both comparisons, with and without shipping, in the same file;
+- a column "Estado da oferta" (0.10.0), because the report lists offers without stock
+  and offers off KuantoKusta too;
 - a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a
   leading apostrophe, so a product name cannot run as a formula. Numbers formatted by
   the plugin are exempt, so a negative difference stays a number.
