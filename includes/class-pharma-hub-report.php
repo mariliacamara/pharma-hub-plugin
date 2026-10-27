@@ -28,6 +28,13 @@ class Pharma_Hub_Report {
     const ORDERS   = array( 'priority', 'name', 'store_price', 'difference', 'percent' );
 
     /**
+     * How many rows a page of the table can hold, and how many it holds
+     * until the person picks another number.
+     */
+    const PER_PAGE_CHOICES = array( 10, 25, 50, 100 );
+    const DEFAULT_PER_PAGE = 10;
+
+    /**
      * Longest search text kept, in characters.
      */
     const MAX_SEARCH = 100;
@@ -69,7 +76,7 @@ class Pharma_Hub_Report {
      * Reads the screen's filters from the query string, keeping only known values.
      *
      * @param array $query Query arguments, such as $_GET after wp_unslash.
-     * @return array{state: string, outcome: string, easy: bool, check: bool, unlinked: bool, shipping: bool, search: string, orderby: string, order: string}
+     * @return array{state: string, outcome: string, easy: bool, check: bool, unlinked: bool, shipping: bool, search: string, orderby: string, order: string, per_page: int, page: int}
      */
     public static function filters_from( $query ) {
         $pick = function ( $key, $allowed, $fallback ) use ( $query ) {
@@ -89,6 +96,58 @@ class Pharma_Hub_Report {
             'search'   => self::clean_search( isset( $query['s'] ) ? $query['s'] : '' ),
             'orderby'  => $pick( 'orderby', self::ORDERS, 'priority' ),
             'order'    => $pick( 'order', array( 'asc', 'desc' ), 'asc' ),
+            'per_page' => self::per_page_from( isset( $query['per_page'] ) ? $query['per_page'] : null ),
+            'page'     => self::page_from( isset( $query['paged'] ) ? $query['paged'] : null ),
+        );
+    }
+
+    /**
+     * A page size from a request: one of the offered sizes, or the default.
+     *
+     * @param mixed $value Value from a request.
+     * @return int
+     */
+    public static function per_page_from( $value ) {
+        $number = is_string( $value ) && ctype_digit( $value ) ? (int) $value : ( is_int( $value ) ? $value : 0 );
+        return in_array( $number, self::PER_PAGE_CHOICES, true ) ? $number : self::DEFAULT_PER_PAGE;
+    }
+
+    /**
+     * A page number from a request: a whole number from 1 up, or 1.
+     *
+     * @param mixed $value Value from a request.
+     * @return int
+     */
+    public static function page_from( $value ) {
+        $number = is_string( $value ) && ctype_digit( $value ) && strlen( $value ) <= 9 ? (int) $value : ( is_int( $value ) ? $value : 1 );
+        return max( 1, $number );
+    }
+
+    /**
+     * One page of the rows.
+     *
+     * A page past the end lands on the last page, so a link kept from before
+     * a smaller report never shows an empty table.
+     *
+     * @param array[] $rows     Filtered and sorted rows.
+     * @param int     $page     Page asked for, from 1.
+     * @param int     $per_page Rows per page.
+     * @return array{rows: array[], page: int, pages: int, total: int, from: int, to: int} "from" and "to" count rows from 1; both are 0 when there are none.
+     */
+    public static function paginate( $rows, $page, $per_page ) {
+        $per_page = max( 1, (int) $per_page );
+        $total    = count( $rows );
+        $pages    = max( 1, (int) ceil( $total / $per_page ) );
+        $page     = min( max( 1, (int) $page ), $pages );
+        $slice    = array_slice( $rows, ( $page - 1 ) * $per_page, $per_page );
+        $from     = $total > 0 ? ( $page - 1 ) * $per_page + 1 : 0;
+        return array(
+            'rows'  => $slice,
+            'page'  => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'from'  => $from,
+            'to'    => $total > 0 ? $from + count( $slice ) - 1 : 0,
         );
     }
 

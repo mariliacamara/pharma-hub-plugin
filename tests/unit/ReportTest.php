@@ -50,6 +50,8 @@ final class ReportTest extends TestCase {
                 'search'   => '',
                 'orderby'  => 'priority',
                 'order'    => 'asc',
+                'per_page' => 10,
+                'page'     => 1,
             ),
             Pharma_Hub_Report::filters_from( array( 'state' => 'gone', 'outcome' => '<script>', 'easy' => 'yes', 'orderby' => array( 'x' ) ) )
         );
@@ -62,6 +64,56 @@ final class ReportTest extends TestCase {
         $this->assertSame( 'all', Pharma_Hub_Report::filters_from( array() )['state'] );
         $this->assertSame( 'all', Pharma_Hub_Report::filters_from( array( 'state' => 'out_of_stock' ) )['state'] );
         $this->assertSame( 'active', Pharma_Hub_Report::filters_from( array( 'state' => 'active' ) )['state'] );
+    }
+
+    public function test_shows_ten_rows_per_page_unless_another_size_is_offered() {
+        $this->assertSame( 10, Pharma_Hub_Report::filters_from( array() )['per_page'] );
+        $this->assertSame( 25, Pharma_Hub_Report::filters_from( array( 'per_page' => '25' ) )['per_page'] );
+        $this->assertSame( 100, Pharma_Hub_Report::filters_from( array( 'per_page' => '100' ) )['per_page'] );
+        // A size that is not offered, or not a number, falls back to the default.
+        foreach ( array( '7', '0', '-5', '1000', 'all', '25abc', '', array( '25' ) ) as $bad ) {
+            $this->assertSame( 10, Pharma_Hub_Report::filters_from( array( 'per_page' => $bad ) )['per_page'], is_array( $bad ) ? 'array' : $bad );
+        }
+    }
+
+    public function test_reads_the_page_number_as_a_whole_number_from_one() {
+        $this->assertSame( 1, Pharma_Hub_Report::filters_from( array() )['page'] );
+        $this->assertSame( 3, Pharma_Hub_Report::filters_from( array( 'paged' => '3' ) )['page'] );
+        foreach ( array( '0', '-2', 'x', '2.5', '', array( '2' ), '99999999999999999999' ) as $bad ) {
+            $this->assertSame( 1, Pharma_Hub_Report::filters_from( array( 'paged' => $bad ) )['page'], is_array( $bad ) ? 'array' : $bad );
+        }
+    }
+
+    public function test_paginates_after_filtering_and_sorting() {
+        $rows = array_map(
+            function ( $id ) {
+                return array( 'offerId' => (string) $id );
+            },
+            range( 1, 23 )
+        );
+
+        $first = Pharma_Hub_Report::paginate( $rows, 1, 10 );
+        $this->assertSame( array( '1', '10' ), array( $first['rows'][0]['offerId'], $first['rows'][9]['offerId'] ) );
+        $this->assertSame( array( 1, 3, 23, 1, 10 ), array( $first['page'], $first['pages'], $first['total'], $first['from'], $first['to'] ) );
+
+        // The last page holds what is left.
+        $last = Pharma_Hub_Report::paginate( $rows, 3, 10 );
+        $this->assertSame( array( '21', '22', '23' ), self::ids( $last['rows'] ) );
+        $this->assertSame( array( 21, 23 ), array( $last['from'], $last['to'] ) );
+
+        // A page past the end lands on the last one.
+        $this->assertSame( 3, Pharma_Hub_Report::paginate( $rows, 99, 10 )['page'] );
+
+        // A bigger page size shows everything on one page.
+        $all = Pharma_Hub_Report::paginate( $rows, 1, 25 );
+        $this->assertSame( array( 23, 1 ), array( count( $all['rows'] ), $all['pages'] ) );
+    }
+
+    public function test_paginating_nothing_gives_one_empty_page() {
+        $empty = Pharma_Hub_Report::paginate( array(), 4, 10 );
+
+        $this->assertSame( array(), $empty['rows'] );
+        $this->assertSame( array( 1, 1, 0, 0, 0 ), array( $empty['page'], $empty['pages'], $empty['total'], $empty['from'], $empty['to'] ) );
     }
 
     public function test_an_offer_never_compared_goes_through_the_filters_and_the_sort() {

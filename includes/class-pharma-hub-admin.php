@@ -395,6 +395,9 @@ class Pharma_Hub_Admin {
             .pharma-hub-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0; }
             .pharma-hub-tools form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0; }
             .pharma-hub-tools .count { color: #50575e; }
+            .pharma-hub-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 12px 0; }
+            .pharma-hub-pager .count { color: #50575e; }
+            .pharma-hub-pager .button.disabled { opacity: .5; pointer-events: none; }
             .pharma-hub-scroll { overflow-x: auto; background: #fff; border: 1px solid #c3c4c7; }
             .pharma-hub-table { width: 100%; min-width: 900px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
             .pharma-hub-table th { padding: 10px 14px; background: #f6f7f7; border-bottom: 1px solid #c3c4c7; text-align: left; font-weight: 600; white-space: nowrap; }

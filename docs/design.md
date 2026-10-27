@@ -223,6 +223,29 @@ left out roughly half of them (185 of about 346 for Zincomed).
   after "Situação", so the file can be filtered in Excel. "Comparado em" is empty for
   an offer never compared.
 
+## Paging the report (built in 0.10.0)
+
+Asked by the client: with every offer listed, the table got too long. A selector for how
+many products show, 10 by default.
+
+- **Done in the plugin, after filtering and sorting.** The plugin already loads the whole
+  report (every hub page of 200) and searches, filters and sorts it in PHP, so paging the
+  hub would not help: the search and the sort need all rows. The slice is the last step
+  before drawing the table (`Pharma_Hub_Report::paginate()`).
+- **Sizes:** 10 (default), 25, 50 and 100. Any other value falls back to 10, so the
+  query string cannot ask for the whole report in one page.
+- **URL:** `per_page` only when it is not 10, and `paged` (not `page`, which WordPress
+  uses for the screen) only from page 2.
+- **Every filter, sort and card link goes back to page 1**, and keeps the page size. The
+  filter form does the same, because it does not send `paged`. A page past the end lands
+  on the last page, so an old link never shows an empty table.
+- **The summary cards and the count still use the whole filtered set**; the line under
+  the table says which rows are on screen ("1–10 de 87").
+- **The CSV is not paged.** It exports every filtered and sorted row, whatever page the
+  person is on.
+- **Not remembered between visits.** A person who always wants 25 picks it each time;
+  saving it per user is a small addition if it is asked for.
+
 ## Search and brand in the report (built in 0.9.0)
 
 Asked by the client: find a product, or every product of a brand, in

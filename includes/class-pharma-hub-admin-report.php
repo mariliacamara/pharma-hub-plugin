@@ -109,8 +109,12 @@ class Pharma_Hub_Admin_Report {
         self::render_header( $report, $filters );
         Pharma_Hub_Admin_Runs::render_panel( $client );
         self::render_summary( $report, $filters );
-        self::render_filters( $filters, count( $rows ) );
-        self::render_table( $rows, $links, $products, $brands, $filters );
+        // Only the screen is paged: the CSV export keeps every filtered row.
+        $pager = Pharma_Hub_Report::paginate( $rows, $filters['page'], $filters['per_page'] );
+
+        self::render_filters( $filters, $pager['total'] );
+        self::render_table( $pager['rows'], $links, $products, $brands, $filters );
+        self::render_pager( $filters, $pager );
     }
 
     /**
@@ -453,6 +457,12 @@ class Pharma_Hub_Admin_Report {
                     <option value="all" <?php selected( $filters['state'], 'all' ); ?>><?php esc_html_e( 'Todas as ofertas sincronizadas', 'pharma-hub-plugin' ); ?></option>
                     <option value="active" <?php selected( $filters['state'], 'active' ); ?>><?php esc_html_e( 'Só com stock no KuantoKusta', 'pharma-hub-plugin' ); ?></option>
                 </select>
+                <label for="pharma-hub-per-page"><?php esc_html_e( 'Por página', 'pharma-hub-plugin' ); ?></label>
+                <select name="per_page" id="pharma-hub-per-page">
+                    <?php foreach ( Pharma_Hub_Report::PER_PAGE_CHOICES as $choice ) : ?>
+                        <option value="<?php echo (int) $choice; ?>" <?php selected( $filters['per_page'], $choice ); ?>><?php echo (int) $choice; ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <label><input type="checkbox" name="unlinked" value="1" <?php checked( $filters['unlinked'] ); ?>> <?php esc_html_e( 'Só sem vínculo', 'pharma-hub-plugin' ); ?></label>
                 <label><input type="checkbox" name="shipping" value="1" <?php checked( $filters['shipping'] ); ?>> <?php esc_html_e( 'Comparar com portes', 'pharma-hub-plugin' ); ?></label>
                 <button type="submit" class="button"><?php esc_html_e( 'Aplicar', 'pharma-hub-plugin' ); ?></button>
@@ -704,7 +714,69 @@ class Pharma_Hub_Admin_Report {
             $args['orderby'] = $filters['orderby'];
             $args['order']   = $filters['order'];
         }
+        if ( Pharma_Hub_Report::DEFAULT_PER_PAGE !== $filters['per_page'] ) {
+            $args['per_page'] = (string) $filters['per_page'];
+        }
+        // The page number is left out on purpose: every link built from the
+        // filters (cards, sort, search) starts again on the first page, and
+        // only page_url() asks for another one.
         return $args;
+    }
+
+    /**
+     * The address of one page of the table, with the current filters.
+     *
+     * @param array $filters Filters.
+     * @param int   $page    Page number, from 1.
+     * @return string
+     */
+    private static function page_url( $filters, $page ) {
+        return self::url( $filters, $page > 1 ? array( 'paged' => (string) $page ) : array() );
+    }
+
+    /**
+     * The page links under the table: where the person is among the rows,
+     * and a way to go to the previous, next, first and last page.
+     *
+     * @param array $filters Current filters.
+     * @param array $pager   From Pharma_Hub_Report::paginate().
+     * @return void
+     */
+    private static function render_pager( $filters, $pager ) {
+        if ( $pager['total'] < 1 ) {
+            return;
+        }
+        $link = function ( $label, $page, $enabled ) use ( $filters ) {
+            if ( ! $enabled ) {
+                return sprintf( '<span class="button disabled" aria-disabled="true">%s</span>', esc_html( $label ) );
+            }
+            return sprintf( '<a class="button" href="%s">%s</a>', esc_url( self::page_url( $filters, $page ) ), esc_html( $label ) );
+        };
+        ?>
+        <nav class="pharma-hub-pager" aria-label="<?php esc_attr_e( 'Páginas do relatório', 'pharma-hub-plugin' ); ?>">
+            <span class="count">
+                <?php
+                /* translators: 1: first row shown, 2: last row shown, 3: total rows */
+                echo esc_html( sprintf( __( '%1$s–%2$s de %3$s', 'pharma-hub-plugin' ), number_format_i18n( $pager['from'] ), number_format_i18n( $pager['to'] ), number_format_i18n( $pager['total'] ) ) );
+                ?>
+            </span>
+            <?php if ( $pager['pages'] > 1 ) : ?>
+                <?php
+                // Built from escaped parts by $link().
+                echo $link( '«', 1, $pager['page'] > 1 ) . ' ' . $link( __( 'Anterior', 'pharma-hub-plugin' ), $pager['page'] - 1, $pager['page'] > 1 ) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                ?>
+                <span class="count">
+                    <?php
+                    /* translators: 1: current page, 2: number of pages */
+                    echo esc_html( sprintf( __( 'Página %1$s de %2$s', 'pharma-hub-plugin' ), number_format_i18n( $pager['page'] ), number_format_i18n( $pager['pages'] ) ) );
+                    ?>
+                </span>
+                <?php
+                echo ' ' . $link( __( 'Seguinte', 'pharma-hub-plugin' ), $pager['page'] + 1, $pager['page'] < $pager['pages'] ) . ' ' . $link( '»', $pager['pages'], $pager['page'] < $pager['pages'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                ?>
+            <?php endif; ?>
+        </nav>
+        <?php
     }
 
     /**

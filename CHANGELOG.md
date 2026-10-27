@@ -22,6 +22,9 @@ All notable changes to this plugin are documented here. The format follows
   (hub pull request #13); with an older hub, only the offers compared at least once
   are listed.
 - "Estado da oferta" column in the CSV.
+- *Relatório* is paged: 10 products per page by default, with a "Por página" selector
+  (10, 25, 50, 100) and page links under the table. The CSV still has every filtered
+  product, not only the page on screen.
 
 ## [0.9.0] - 2026-10-17
 
