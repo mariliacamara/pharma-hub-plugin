@@ -210,8 +210,9 @@ left out roughly half of them (185 of about 346 for Zincomed).
   been compared, even with `state=all`. The hub now lists them (hub decision 0031) as
   `no_data`, with the offer's own price and a null `runId` and `comparedAt`. Without
   that change, 0.10.0 still shows every offer that has been compared at least once.
-- **What a row says about the offer:** a pill "Sem stock" or "Retirada do KuantoKusta"
-  next to the situation, from `offerState`. An offer with stock shows no pill.
+- **No pill for the offer's state.** Considered and left out: an offer without stock
+  on KuantoKusta is expected for this client, so a label on those rows would only add
+  noise. The state is in the CSV.
 - **An offer never compared** shows "Ainda não comparada" instead of "Sem dados". They
   are different: "Sem dados" is a page the hub read and could not use; the other has not
   been read at all. The plugin tells them apart by `runId` being null. The offer's own

@@ -14,8 +14,6 @@ All notable changes to this plugin are documented here. The format follows
   stock and active on KuantoKusta or not. The selector offers "Todas as ofertas
   sincronizadas" (the default) and "Só com stock no KuantoKusta"; before, the default
   hid the offers that a collection does not compare.
-- Offers without stock or off KuantoKusta carry a pill ("Sem stock", "Retirada do
-  KuantoKusta") in the table.
 
 ### Added
 

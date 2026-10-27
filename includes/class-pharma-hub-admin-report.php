@@ -625,9 +625,6 @@ class Pharma_Hub_Admin_Report {
                             <?php else : ?>
                                 <span class="pharma-hub-pill <?php echo esc_attr( $row['outcome'] ); ?>"><?php echo esc_html( self::situation_label( $row ) ); ?></span>
                             <?php endif; ?>
-                            <?php if ( isset( $row['offerState'] ) && 'active' !== $row['offerState'] && '' !== self::offer_state_label( $row ) ) : ?>
-                                <span class="pharma-hub-pill"><?php echo esc_html( self::offer_state_label( $row ) ); ?></span>
-                            <?php endif; ?>
                             <?php if ( ! empty( $row['checkLink'] ) ) : ?>
                                 <span class="pharma-hub-pill check"><?php esc_html_e( 'Diferença suspeita', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
