@@ -212,16 +212,19 @@ left out roughly half of them (185 of about 346 for Zincomed).
   that change, 0.10.0 still shows every offer that has been compared at least once.
 - **No pill for the offer's state.** Considered and left out: an offer without stock
   on KuantoKusta is expected for this client, so a label on those rows would only add
-  noise. The state is in the CSV.
+  noise. The CSV does not carry it either.
 - **An offer never compared** shows "Ainda não comparada" instead of "Sem dados". They
   are different: "Sem dados" is a page the hub read and could not use; the other has not
   been read at all. The plugin tells them apart by `runId` being null. The offer's own
   price is shown; the other columns are empty.
 - **Rows keep every filter and sort.** An offer without a gap goes with the others
   without data, last.
-- **CSV:** a column "Estado da oferta" (Com stock, Sem stock, Retirada do KuantoKusta)
-  after "Situação", so the file can be filtered in Excel. "Comparado em" is empty for
-  an offer never compared.
+- **"coleta anterior" only for offers with stock on KuantoKusta.** A collection compares
+  only those, so an offer without stock or off KuantoKusta is always behind the latest
+  collection, and for this client that is deliberate. The pill and the warning above the
+  table count only offers a collection should have reached (`is_behind()`); an older hub
+  that does not send the state keeps the note.
+- **CSV:** no state column. "Comparado em" is empty for an offer never compared.
 
 ## Paging the report (built in 0.10.0)
 
@@ -316,8 +319,6 @@ collection that reached it (`GET /v1/plugin/kuantokusta/offers/{id}/history`).
 - `;` separator, decimal comma, UTF-8 with BOM, CRLF lines;
 - amounts without the thousands separator, so a spreadsheet reads them as numbers;
 - both comparisons, with and without shipping, in the same file;
-- a column "Estado da oferta" (0.10.0), because the report lists offers without stock
-  and offers off KuantoKusta too;
 - a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a
   leading apostrophe, so a product name cannot run as a formula. Numbers formatted by
   the plugin are exempt, so a negative difference stays a number.

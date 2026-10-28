@@ -4,15 +4,13 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminReportTest extends TestCase {
 
-    public function test_names_where_an_offer_stands_on_kuantokusta() {
-        $this->assertSame( 'Com stock', Pharma_Hub_Admin_Report::offer_state_label( array( 'offerState' => 'active' ) ) );
-        $this->assertSame( 'Sem stock', Pharma_Hub_Admin_Report::offer_state_label( array( 'offerState' => 'out_of_stock' ) ) );
-        $this->assertSame( 'Retirada do KuantoKusta', Pharma_Hub_Admin_Report::offer_state_label( array( 'offerState' => 'delisted' ) ) );
-    }
-
-    public function test_says_nothing_when_the_hub_did_not_send_the_state() {
-        $this->assertSame( '', Pharma_Hub_Admin_Report::offer_state_label( array() ) );
-        $this->assertSame( '', Pharma_Hub_Admin_Report::offer_state_label( array( 'offerState' => 'something-new' ) ) );
+    public function test_only_an_offer_a_collection_compares_can_be_behind() {
+        $this->assertTrue( Pharma_Hub_Admin_Report::is_behind( array( 'stale' => true, 'offerState' => 'active' ) ) );
+        $this->assertFalse( Pharma_Hub_Admin_Report::is_behind( array( 'stale' => true, 'offerState' => 'out_of_stock' ) ) );
+        $this->assertFalse( Pharma_Hub_Admin_Report::is_behind( array( 'stale' => true, 'offerState' => 'delisted' ) ) );
+        $this->assertFalse( Pharma_Hub_Admin_Report::is_behind( array( 'stale' => false, 'offerState' => 'active' ) ) );
+        // An older hub does not send the state: the note stays.
+        $this->assertTrue( Pharma_Hub_Admin_Report::is_behind( array( 'stale' => true ) ) );
     }
 
     public function test_tells_an_offer_never_compared_from_a_page_that_could_not_be_read() {

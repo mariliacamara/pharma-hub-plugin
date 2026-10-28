@@ -40,27 +40,19 @@ class Pharma_Hub_Admin_Report {
     }
 
     /**
-     * Where an offer stands on KuantoKusta, as the hub reports it.
+     * Whether a row shows the price of an older collection that the latest one
+     * should have replaced.
      *
-     * @return array
-     */
-    public static function offer_state_labels() {
-        return array(
-            'active'       => __( 'Com stock', 'pharma-hub-plugin' ),
-            'out_of_stock' => __( 'Sem stock', 'pharma-hub-plugin' ),
-            'delisted'     => __( 'Retirada do KuantoKusta', 'pharma-hub-plugin' ),
-        );
-    }
-
-    /**
-     * The offer's state, or an empty string when the hub did not say.
+     * Only an offer a collection compares can be behind it. An offer without
+     * stock or off KuantoKusta is never reached, often on purpose, so the note
+     * would be noise there. An older hub does not send the state: such a row
+     * keeps the note.
      *
      * @param array $row Report row.
-     * @return string
+     * @return bool
      */
-    public static function offer_state_label( $row ) {
-        $labels = self::offer_state_labels();
-        return isset( $row['offerState'], $labels[ $row['offerState'] ] ) ? $labels[ $row['offerState'] ] : '';
+    public static function is_behind( $row ) {
+        return ! empty( $row['stale'] ) && ( ! isset( $row['offerState'] ) || 'active' === $row['offerState'] );
     }
 
     /**
@@ -162,7 +154,6 @@ class Pharma_Hub_Admin_Report {
             __( 'Posição', 'pharma-hub-plugin' ),
             __( 'N.º de lojas', 'pharma-hub-plugin' ),
             __( 'Situação', 'pharma-hub-plugin' ),
-            __( 'Estado da oferta', 'pharma-hub-plugin' ),
             __( 'Ajuste fácil', 'pharma-hub-plugin' ),
             __( 'Diferença suspeita', 'pharma-hub-plugin' ),
             __( 'Preço com portes (€)', 'pharma-hub-plugin' ),
@@ -194,7 +185,6 @@ class Pharma_Hub_Admin_Report {
                 Pharma_Hub_Format::csv_cell( $row['storePosition'], true ),
                 Pharma_Hub_Format::csv_cell( $row['storeCount'], true ),
                 Pharma_Hub_Format::csv_cell( self::situation_label( $row ) ),
-                Pharma_Hub_Format::csv_cell( self::offer_state_label( $row ) ),
                 empty( $row['easyAdjust'] ) ? $no : $yes,
                 empty( $row['checkLink'] ) ? $no : $yes,
                 $number( $row['storeTotalCents'] ),
@@ -306,6 +296,8 @@ class Pharma_Hub_Admin_Report {
     private static function render_header( $report, $filters ) {
         $run     = isset( $report['run'] ) ? $report['run'] : null;
         $summary = isset( $report['summary'] ) ? $report['summary'] : array();
+        // The hub counts every stale row; only those a collection should have reached matter.
+        $behind = count( array_filter( isset( $report['rows'] ) ? $report['rows'] : array(), array( __CLASS__, 'is_behind' ) ) );
         ?>
         <div class="pharma-hub-head">
             <div class="grow">
@@ -325,13 +317,13 @@ class Pharma_Hub_Admin_Report {
             </div>
             <a class="button" href="<?php echo esc_url( self::url( $filters, array( 'refresh' => '1' ) ) ); ?>"><?php esc_html_e( 'Atualizar', 'pharma-hub-plugin' ); ?></a>
         </div>
-        <?php if ( ! empty( $summary['stale'] ) ) : ?>
+        <?php if ( $behind > 0 ) : ?>
             <div class="notice notice-warning inline"><p>
                 <?php
                 printf(
                     /* translators: %d: number of products */
-                    esc_html( _n( '%d produto mostra o preço de uma coleta anterior, porque a última não chegou a ele.', '%d produtos mostram preços de uma coleta anterior, porque a última não chegou a eles.', (int) $summary['stale'], 'pharma-hub-plugin' ) ),
-                    (int) $summary['stale']
+                    esc_html( _n( '%d produto mostra o preço de uma coleta anterior, porque a última não chegou a ele.', '%d produtos mostram preços de uma coleta anterior, porque a última não chegou a eles.', $behind, 'pharma-hub-plugin' ) ),
+                    (int) $behind
                 );
                 ?>
             </p></div>
@@ -638,7 +630,7 @@ class Pharma_Hub_Admin_Report {
                             <?php if ( ! empty( $row['checkLink'] ) ) : ?>
                                 <span class="pharma-hub-pill check"><?php esc_html_e( 'Diferença suspeita', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
-                            <?php if ( ! empty( $row['stale'] ) ) : ?>
+                            <?php if ( self::is_behind( $row ) ) : ?>
                                 <span class="pharma-hub-pill" title="<?php echo esc_attr( Pharma_Hub_Format::time( $row['comparedAt'] ) ); ?>"><?php esc_html_e( 'coleta anterior', 'pharma-hub-plugin' ); ?></span>
                             <?php endif; ?>
                             <?php if ( null !== $suggestion ) : ?>

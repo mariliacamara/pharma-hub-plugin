@@ -14,6 +14,8 @@ All notable changes to this plugin are documented here. The format follows
   stock and active on KuantoKusta or not. The selector offers "Todas as ofertas
   sincronizadas" (the default) and "Só com stock no KuantoKusta"; before, the default
   hid the offers that a collection does not compare.
+- The "coleta anterior" note, and the warning that counts it, only appear for offers
+  with stock on KuantoKusta. A collection never reaches the others, often on purpose.
 
 ### Added
 
@@ -21,7 +23,6 @@ All notable changes to this plugin are documented here. The format follows
   with the offer's own price. This needs the hub change that lists these offers
   (hub pull request #13); with an older hub, only the offers compared at least once
   are listed.
-- "Estado da oferta" column in the CSV.
 - *Relatório* is paged: 10 products per page by default, with a "Por página" selector
   (10, 25, 50, 100) and page links under the table. The CSV still has every filtered
   product, not only the page on screen.
